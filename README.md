@@ -172,21 +172,25 @@ Flynn-Project/
 </details>
 
 <details>
-<summary>Prerequisites</summary>
+<summary>Requirements</summary>
 
-**Required**
-| Requirement | Version | Notes |
-|:------------|:--------|:------|
-| Node.js | `≥ 20` | Runtime |
-| pnpm | `≥ 9` | Package manager |
-| Claude Code | latest | Pro/Max plan or API key |
+**You need**
+| Requirement | Notes |
+|:------------|:------|
+| Claude Code | With Pro/Max plan or API key |
 
-**Recommended**
-| Requirement | Version | Notes |
-|:------------|:--------|:------|
-| Python | `≥ 3.11` | For Data/ML agents |
+**Auto-installed by install.sh**
+| Package | Version |
+|:--------|:--------|
+| Node.js | `≥ 20` |
+| pnpm | `≥ 9` |
+
+**Recommended for full features**
+| Package | Version | Notes |
+|:--------|:--------|:------|
+| Python | `≥ 3.11` | Data/ML agents |
 | uv | latest | Python package manager |
-| Git | `≥ 2.0` | For git-ops tools |
+| Git | `≥ 2.0` | git-ops tools |
 
 </details>
 
