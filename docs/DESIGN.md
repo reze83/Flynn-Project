@@ -964,10 +964,8 @@ User runs: npx @flynn/bootstrap
 ### Option B: Shell-Script (ohne Node)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<github-user>/flynn-project/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/reze83/Flynn-Project/main/install.sh | bash
 ```
-
-> **Note:** Replace `<github-user>` with the actual GitHub username/organization.
 
 **install.sh Inhalt:**
 ```bash
@@ -1025,17 +1023,18 @@ npx @flynn/bootstrap "$@"
 - [x] Healer agent
 - [x] Data agent
 
-### Phase 4: Integration (Partial)
-- [ ] /flynn slash command
-- [ ] flynn.policy.yaml enforcement
-- [ ] capabilities.yaml routing
+### Phase 4: Integration ✅
+- [x] /flynn slash command
+- [x] flynn.policy.yaml enforcement
+- [x] capabilities.yaml routing
 - [x] Python package restructure
 
 ### Phase 5: Polish ✅
 - [x] Documentation (DESIGN.md)
 - [x] Tests (169 unit tests)
 - [x] GitHub Actions CI/CD
-- [ ] README + Installation guide
+- [x] README + Installation guide
+- [x] install.sh bootstrap script
 
 ## Tool Registration Pattern
 
@@ -1421,4 +1420,5 @@ export async function handleFlynnRequest(userPrompt: string) {
 - **Umsetzung:** Option B - vollständig implementiert + getestet
 - **Entwicklung:** Parallel zu bestehendem Flynn (`/home/c/projects/Flynn`)
 - **Ziel-Ort:** `/home/c/projects/Flynn-Project`
-- **GitHub:** Repo muss LICENSE, .gitignore, README.md enthalten
+- **GitHub:** https://github.com/reze83/Flynn-Project (private)
+- **Status:** Alle Phasen abgeschlossen, bereit für Produktion
