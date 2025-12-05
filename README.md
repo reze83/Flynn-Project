@@ -180,6 +180,7 @@ Flynn-Project/
 | pnpm | `≥ 9` | Required |
 | Claude Code | latest | With Pro/Max plan or API key |
 | Python | `≥ 3.11` | Optional, recommended |
+| uv | latest | For Python dependencies |
 
 </details>
 
