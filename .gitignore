@@ -62,4 +62,4 @@ STATUS.md
 *.tmp
 *.temp
 .~*
-DESIGN.md
+docs/
