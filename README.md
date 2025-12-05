@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=220&section=header&text=Flynn&fontSize=80&fontColor=fff&animation=fadeIn&fontAlignY=30&desc=AI%20Agent%20Orchestrator&descSize=20&descAlignY=52" width="100%"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=220&section=header&text=Flynn&fontSize=80&fontColor=fff&animation=fadeIn&fontAlignY=28&desc=AI%20Agent%20Orchestrator&descSize=18&descAlignY=50" width="100%"/>
 </div>
 
 <p align="center">
@@ -14,168 +14,165 @@
 </p>
 
 <p align="center">
-  <a href="#installation">Installation</a> ·
-  <a href="#usage">Usage</a> ·
-  <a href="#agents">Agents</a> ·
-  <a href="#configuration">Config</a> ·
-  <a href="#development">Development</a>
+  <a href="#-installation">Installation</a> ·
+  <a href="#-how-it-works">How it Works</a> ·
+  <a href="#-agents">Agents</a> ·
+  <a href="#%EF%B8%8F-configuration">Config</a>
 </p>
 
 <br/>
 
-## About
+## Why Flynn?
 
-Flynn routes your development tasks to specialized AI agents - each optimized for specific domains like debugging, scaffolding, coding, or releasing. Built on the [Mastra Framework](https://mastra.ai) with persistent memory and self-healing capabilities.
-
-```bash
-/flynn diagnose why my API returns 500 errors
-```
+Instead of one general-purpose AI, Flynn routes your tasks to **specialized expert agents** - each optimized for specific domains. Built on [Mastra](https://mastra.ai) with persistent memory and self-healing.
 
 <br/>
 
-## Installation
+## 🚀 Installation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/reze83/Flynn-Project/main/install.sh | bash
 ```
 
 <details>
-<summary><kbd>Manual Installation</kbd></summary>
-<br/>
+<summary>Manual Installation</summary>
 
 ```bash
 git clone https://github.com/reze83/Flynn-Project.git
-cd Flynn-Project
-pnpm install && pnpm build
+cd Flynn-Project && pnpm install && pnpm build
 export ANTHROPIC_API_KEY="sk-..."
 ```
-
 </details>
 
 <br/>
 
-## Usage
+## 🔄 How it Works
 
-```bash
-/flynn <task description>
+```mermaid
+flowchart LR
+    subgraph Claude Code
+        U["<b>/flynn</b> task"]
+    end
+
+    U --> O["🎯 Orchestrator"]
+
+    O --> I["📦 Installer"]
+    O --> D["🔍 Diagnostic"]
+    O --> S["🏗️ Scaffolder"]
+    O --> C["💻 Coder"]
+    O --> R["✨ Refactor"]
+    O --> RE["🚀 Release"]
+    O --> DA["📊 Data"]
+
+    H["💚 Healer"] -.->|auto-recovery| O
+
+    style U fill:#667eea,stroke:#667eea,color:#fff
+    style O fill:#764ba2,stroke:#764ba2,color:#fff
+    style H fill:#22c55e,stroke:#22c55e,color:#fff
 ```
 
-| Category | Example |
-|:---------|:--------|
-| **Setup** | `/flynn install dependencies for Next.js` |
-| **Debug** | `/flynn diagnose failing tests` |
-| **Create** | `/flynn scaffold a REST API with Express` |
-| **Code** | `/flynn implement JWT authentication` |
-| **Improve** | `/flynn refactor for readability` |
-| **Release** | `/flynn prepare release v2.0.0` |
-| **Data** | `/flynn analyze sales.csv` |
+<br/>
+
+## 🤖 Agents
+
+| Agent | Triggers | What it does |
+|:------|:---------|:-------------|
+| **📦 Installer** | `install` `setup` `bootstrap` | Dependencies & environment setup |
+| **🔍 Diagnostic** | `diagnose` `debug` `fix` `error` | Error analysis & troubleshooting |
+| **🏗️ Scaffolder** | `create` `new` `scaffold` `init` | Project & component generation |
+| **💻 Coder** | `implement` `code` `write` `add` | Feature development |
+| **✨ Refactor** | `refactor` `improve` `optimize` | Code quality improvements |
+| **🚀 Release** | `release` `publish` `version` | Version & release management |
+| **📊 Data** | `data` `csv` `pandas` `ml` | Data analysis & ML inference |
+| **💚 Healer** | *(automatic)* | Failure recovery & retry |
 
 <br/>
 
-## Agents
+## 📝 Usage Examples
 
-| Agent | Triggers | Description |
-|:------|:---------|:------------|
-| **Installer** | `install` `setup` `bootstrap` | Dependency management |
-| **Diagnostic** | `diagnose` `debug` `fix` `error` | Error analysis & troubleshooting |
-| **Scaffolder** | `create` `new` `scaffold` `init` | Project generation |
-| **Coder** | `implement` `code` `write` `add` | Feature development |
-| **Refactor** | `refactor` `improve` `optimize` | Code quality |
-| **Release** | `release` `publish` `version` | Version management |
-| **Data** | `data` `csv` `pandas` `ml` | Data analysis & ML |
-| **Healer** | *(automatic)* | Failure recovery |
+```bash
+/flynn install dependencies for Next.js      # → Installer Agent
+/flynn diagnose why tests are failing        # → Diagnostic Agent
+/flynn create a REST API with Express        # → Scaffolder Agent
+/flynn implement JWT authentication          # → Coder Agent
+/flynn refactor for better readability       # → Refactor Agent
+/flynn prepare release v2.0.0                # → Release Agent
+/flynn analyze sales.csv                     # → Data Agent
+```
 
 <br/>
 
-## Configuration
+## ⚙️ Configuration
 
-Flynn uses XDG-compliant paths:
+<table>
+<tr>
+<td width="50%">
 
-| Path | Purpose |
-|:-----|:--------|
-| `~/.config/flynn/` | Configuration |
-| `~/.local/share/flynn/` | Data & memory |
-| `~/.cache/flynn/` | Cache |
+**XDG Paths**
+```
+~/.config/flynn/        # Config
+~/.local/share/flynn/   # Data
+~/.cache/flynn/         # Cache
+```
 
-<details>
-<summary><kbd>Security Policy</kbd></summary>
-<br/>
+</td>
+<td width="50%">
 
+**Security Policy**
 ```yaml
 # config/flynn.policy.yaml
 permissions:
   shell:
-    allow: ["git *", "pnpm *", "npm *"]
+    allow: ["git *", "pnpm *"]
     deny: ["rm -rf /", "sudo *"]
-  paths:
-    writable: ["${PROJECT_ROOT}/**"]
 ```
 
-</details>
-
-<details>
-<summary><kbd>Agent Routing</kbd></summary>
-<br/>
-
-```yaml
-# config/capabilities.yaml
-agents:
-  installer:
-    triggers: ["install", "setup", "bootstrap"]
-    tools: ["shell", "file-ops", "git-ops"]
-    priority: high
-```
-
-</details>
+</td>
+</tr>
+</table>
 
 <br/>
 
-## Development
+## 🛠️ Development
 
 ```bash
-pnpm install      # Dependencies
-pnpm build        # Build
-pnpm test         # 169 tests
-pnpm lint         # Lint check
-pnpm dev          # Watch mode
+pnpm install    # Install dependencies
+pnpm build      # Build all packages
+pnpm test       # Run 169 tests
+pnpm lint       # Check code quality
 ```
 
 <details>
-<summary><kbd>Project Structure</kbd></summary>
-<br/>
+<summary>Project Structure</summary>
 
 ```
 Flynn-Project/
 ├── packages/
-│   ├── core/           # Shared utilities
-│   ├── bootstrap/      # Self-installation
-│   ├── agents/         # Mastra agents
-│   ├── tools/          # Mastra tools
-│   └── python/         # Data/ML tools
-├── apps/
-│   └── server/         # MCP Server
-└── config/
-    ├── flynn.policy.yaml
-    └── capabilities.yaml
+│   ├── core/        # Shared utilities
+│   ├── bootstrap/   # Self-installation
+│   ├── agents/      # Mastra agents
+│   ├── tools/       # Mastra tools
+│   └── python/      # Data/ML tools
+├── apps/server/     # MCP Server
+└── config/          # Policy & capabilities
 ```
+</details>
+
+<details>
+<summary>Tech Stack</summary>
+
+| | Technology | Purpose |
+|:--:|:-----------|:--------|
+| 🤖 | [Mastra](https://mastra.ai) | Agent Framework |
+| 🔌 | [MCP](https://modelcontextprotocol.io) | Model Context Protocol |
+| 💾 | [LibSQL](https://turso.tech/libsql) | Memory Storage |
+| 🧹 | [Biome](https://biomejs.dev) | Linting & Formatting |
+| 🧪 | [Vitest](https://vitest.dev) | Testing |
 
 </details>
 
-<br/>
-
-## Tech Stack
-
-<p align="left">
-  <a href="https://mastra.ai"><img src="https://img.shields.io/badge/Mastra-Agent_Framework-FF6B6B?style=for-the-badge&labelColor=1a1a2e" alt="Mastra"/></a>
-  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Protocol-8B5CF6?style=for-the-badge&labelColor=1a1a2e" alt="MCP"/></a>
-  <a href="https://turso.tech/libsql"><img src="https://img.shields.io/badge/LibSQL-Storage-06B6D4?style=for-the-badge&labelColor=1a1a2e" alt="LibSQL"/></a>
-  <a href="https://biomejs.dev"><img src="https://img.shields.io/badge/Biome-Linting-60A5FA?style=for-the-badge&labelColor=1a1a2e" alt="Biome"/></a>
-  <a href="https://vitest.dev"><img src="https://img.shields.io/badge/Vitest-Testing-729B1B?style=for-the-badge&labelColor=1a1a2e" alt="Vitest"/></a>
-</p>
-
-<br/>
-
-## Prerequisites
+<details>
+<summary>Prerequisites</summary>
 
 | Requirement | Version | Required |
 |:------------|:--------|:--------:|
@@ -183,7 +180,8 @@ Flynn-Project/
 | pnpm | `≥ 9` | ✓ |
 | Anthropic API Key | - | ✓ |
 | Python | `≥ 3.11` | ○ |
-| uv | latest | ○ |
+
+</details>
 
 <br/>
 
@@ -191,10 +189,6 @@ Flynn-Project/
 
 <p align="center">
   <sub>Built with <a href="https://mastra.ai">Mastra</a> · Powered by <a href="https://anthropic.com">Claude</a></sub>
-</p>
-
-<p align="center">
-  <a href="LICENSE">MIT</a> · © 2024
 </p>
 
 <div align="center">
