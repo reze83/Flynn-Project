@@ -1,4 +1,8 @@
 version: "1.0"
+
+# Flynn Security Policy
+# Controls what operations agents can perform
+
 permissions:
   shell:
     allow:
@@ -8,49 +12,49 @@ permissions:
       - "uv *"
       - "node *"
       - "python *"
-      - "ls *"
-      - "cat *"
-      - "grep *"
-      - "find *"
-      - "mkdir *"
-      - "touch *"
-      - "cp *"
-      - "mv *"
+      - "pip *"
+      - "npx *"
+      - "tsc *"
+      - "biome *"
+      - "vitest *"
+      - "ruff *"
     deny:
       - "rm -rf /"
+      - "rm -rf ~"
       - "rm -rf /*"
       - "sudo *"
       - "chmod 777 *"
-      - "> /dev/sda*"
-      - "mkfs *"
-      - "dd if=*"
-      - ":(){ :|:& };:"  # Fork bomb
+      - "curl * | bash"
+      - "wget * | bash"
 
   paths:
     writable:
       - "${XDG_DATA_HOME}/flynn"
-      - "${XDG_CONFIG_HOME}/flynn"
+      - "${XDG_CACHE_HOME}/flynn"
       - "${PROJECT_ROOT}"
-      - "${HOME}/.local/share/flynn"
-      - "${HOME}/.config/flynn"
+      - "${PROJECT_ROOT}/**"
     readonly:
       - "/etc"
       - "/usr"
       - "/bin"
       - "/sbin"
-      - "/lib"
-
-  agents:
-    max_iterations: 10
-    timeout_seconds: 300
-    max_tokens_per_request: 100000
 
   network:
-    allow_outbound: true
-    allowed_hosts:
+    allow:
       - "api.anthropic.com"
       - "api.openai.com"
       - "registry.npmjs.org"
       - "pypi.org"
       - "github.com"
-      - "raw.githubusercontent.com"
+    deny:
+      - "*"  # Deny all others by default
+
+agents:
+  max_iterations: 10
+  timeout_seconds: 300
+  max_retries: 3
+
+logging:
+  level: info
+  format: json
+  include_timestamps: true
