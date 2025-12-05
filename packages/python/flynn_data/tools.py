@@ -79,8 +79,8 @@ DATA_TOOLS = [
 
 async def execute_data_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
     """Execute a data tool."""
-    import pandas as pd
     import numpy as np
+    import pandas as pd
 
     try:
         if name == "flynn-data_load_csv":

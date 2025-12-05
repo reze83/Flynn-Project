@@ -115,8 +115,8 @@ async def execute_ml_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
             }
 
         elif name == "flynn-ml_embeddings":
-            from transformers import AutoTokenizer, AutoModel
             import torch
+            from transformers import AutoModel, AutoTokenizer
 
             model_name = "sentence-transformers/all-MiniLM-L6-v2"
             tokenizer = AutoTokenizer.from_pretrained(model_name)
