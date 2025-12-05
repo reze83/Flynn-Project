@@ -1,73 +1,81 @@
-# Flynn
+<div align="center">
 
-Mastra-powered autonomous AI agent orchestrator for Claude Code.
+```
+███████╗██╗  ██╗   ██╗███╗   ██╗███╗   ██╗
+██╔════╝██║  ╚██╗ ██╔╝████╗  ██║████╗  ██║
+█████╗  ██║   ╚████╔╝ ██╔██╗ ██║██╔██╗ ██║
+██╔══╝  ██║    ╚██╔╝  ██║╚██╗██║██║╚██╗██║
+██║     ███████╗██║   ██║ ╚████║██║ ╚████║
+╚═╝     ╚══════╝╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═══╝
+```
 
-Flynn provides a unified interface for development tasks through specialized AI agents that collaborate to handle installation, debugging, coding, refactoring, and more.
+**Autonomous AI Agent Orchestrator for Claude Code**
+
+[![CI](https://github.com/reze83/Flynn-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/reze83/Flynn-Project/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+[Installation](#-installation) • [Usage](#-usage) • [Agents](#-available-agents) • [Development](#-development)
+
+</div>
+
+---
+
+## Overview
+
+Flynn is a **Mastra-powered** multi-agent system that extends Claude Code with specialized AI agents. One command routes your request to the right expert agent.
+
+```
+/flynn <your task>
+```
+
+<br>
+
+## Features
+
+| | Feature | Description |
+|:--:|---------|-------------|
+| 🎯 | **Smart Routing** | Automatically routes tasks to specialized agents |
+| 🔧 | **8 Expert Agents** | Installer, Diagnostic, Scaffolder, Coder, Refactor, Release, Data, Healer |
+| 🔄 | **Self-Healing** | Automatic failure recovery with intelligent retry |
+| 🧠 | **Persistent Memory** | Context continuity across sessions via LibSQL |
+| 🔒 | **Security First** | Policy-based permissions and XDG-compliant paths |
+| 🐍 | **Python Integration** | Optional pandas & ML tools for data tasks |
+
+<br>
 
 ## Installation
 
-### Quick Install (Recommended)
+### Quick Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/reze83/Flynn-Project/main/install.sh | bash
 ```
 
-This will:
-1. Check/install Node.js 20+
-2. Check/install pnpm
-3. Run the Flynn bootstrap package
-
-### Manual Installation
+<details>
+<summary><b>Manual Installation</b></summary>
 
 ```bash
-# Clone the repository
 git clone https://github.com/reze83/Flynn-Project.git
 cd Flynn-Project
-
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
-
-# Link for local development
-pnpm link --global
 ```
 
-## Prerequisites
+</details>
 
-- **Node.js** 20+
-- **pnpm** (installed via corepack)
-- **Claude Code** CLI
-- **Anthropic API Key** (set as `ANTHROPIC_API_KEY` environment variable)
+### Prerequisites
 
-Optional for data/ML features:
-- **Python** 3.11+
-- **uv** (Python package manager)
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Node.js | >= 20 | Required |
+| pnpm | >= 9 | Via corepack |
+| Anthropic API Key | - | Set `ANTHROPIC_API_KEY` |
+| Python | >= 3.11 | Optional (data/ML) |
+| uv | latest | Optional (Python pkg mgr) |
 
-## Configuration
-
-Flynn uses XDG-compliant paths:
-
-```
-~/.config/flynn/         # Configuration
-~/.local/share/flynn/    # Data (memory, state)
-~/.cache/flynn/          # Cache
-```
-
-### Security Policy
-
-Edit `config/flynn.policy.yaml` to customize:
-- Allowed shell commands
-- Writable/readonly paths
-- Network access rules
-
-### Agent Capabilities
-
-Edit `config/capabilities.yaml` to customize:
-- Agent routing triggers
-- Tool access per agent
-- Priority levels
+<br>
 
 ## Usage
 
@@ -79,49 +87,123 @@ In Claude Code, use the slash command:
 
 ### Examples
 
-```
+```bash
+# Installation & Setup
 /flynn install dependencies for a React project
+/flynn setup TypeScript with strict mode
+
+# Debugging & Diagnostics
 /flynn diagnose why my tests are failing
+/flynn debug this authentication error
+
+# Code Generation
 /flynn create a new Express API with TypeScript
-/flynn implement user authentication
+/flynn implement user authentication with JWT
+
+# Code Quality
 /flynn refactor this function for better readability
-/flynn prepare release v1.2.0
+/flynn optimize database queries in user service
+
+# Release Management
+/flynn prepare release v2.0.0
+/flynn generate changelog from commits
+
+# Data Analysis
+/flynn analyze sales.csv and show trends
+/flynn run sentiment analysis on reviews
 ```
 
-### Available Agents
+<br>
 
-| Agent | Triggers | Description |
-|-------|----------|-------------|
-| **installer** | install, setup, bootstrap | Dependency management |
-| **diagnostic** | diagnose, debug, fix, error | Issue troubleshooting |
-| **scaffolder** | create, new, scaffold, init | Project generation |
-| **coder** | implement, code, write, add | Feature development |
-| **refactor** | refactor, improve, optimize | Code improvement |
-| **release** | release, publish, version | Release management |
-| **data** | data, csv, pandas, ml | Data analysis |
-| **healer** | *(automatic)* | Failure recovery |
+## Available Agents
+
+```
+                    ┌─────────────────┐
+                    │   Orchestrator  │
+                    │    (Router)     │
+                    └────────┬────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+        ▼                    ▼                    ▼
+┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+│   Installer   │  │  Diagnostic   │  │  Scaffolder   │
+│   setup, dep  │  │  debug, fix   │  │  create, new  │
+└───────────────┘  └───────────────┘  └───────────────┘
+        │                    │                    │
+        ▼                    ▼                    ▼
+┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+│     Coder     │  │   Refactor    │  │    Release    │
+│  implement    │  │   improve     │  │   publish     │
+└───────────────┘  └───────────────┘  └───────────────┘
+        │                    │
+        ▼                    ▼
+┌───────────────┐  ┌───────────────┐
+│     Data      │  │    Healer     │
+│   analyze     │  │  auto-recover │
+└───────────────┘  └───────────────┘
+```
+
+| Agent | Triggers | Capabilities |
+|:------|:---------|:-------------|
+| **Installer** | `install` `setup` `bootstrap` | Dependency management, environment setup |
+| **Diagnostic** | `diagnose` `debug` `fix` `error` | Error analysis, troubleshooting |
+| **Scaffolder** | `create` `new` `scaffold` `init` | Project generation, boilerplate |
+| **Coder** | `implement` `code` `write` `add` | Feature development, code writing |
+| **Refactor** | `refactor` `improve` `optimize` | Code quality, performance |
+| **Release** | `release` `publish` `version` | Versioning, changelog, publishing |
+| **Data** | `data` `csv` `pandas` `ml` | Data analysis, ML inference |
+| **Healer** | *(automatic)* | Failure recovery, retry logic |
+
+<br>
+
+## Configuration
+
+Flynn uses **XDG-compliant** paths:
+
+```
+~/.config/flynn/         # Configuration
+~/.local/share/flynn/    # Data (memory, state)
+~/.cache/flynn/          # Cache
+```
+
+### Security Policy
+
+Edit `config/flynn.policy.yaml`:
+
+```yaml
+permissions:
+  shell:
+    allow: ["git *", "pnpm *", "npm *"]
+    deny: ["rm -rf /", "sudo *"]
+  paths:
+    writable: ["${PROJECT_ROOT}/**"]
+    readonly: ["/etc", "/usr"]
+```
+
+### Agent Routing
+
+Edit `config/capabilities.yaml`:
+
+```yaml
+agents:
+  installer:
+    triggers: ["install", "setup", "bootstrap"]
+    tools: ["shell", "file-ops", "git-ops"]
+    priority: high
+```
+
+<br>
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run tests
-pnpm test
-
-# Lint and format
-pnpm lint
-pnpm format
-
-# Type check
-pnpm typecheck
-
-# Development mode (watch)
-pnpm dev
+pnpm install      # Install dependencies
+pnpm build        # Build all packages
+pnpm test         # Run tests (169 unit tests)
+pnpm lint         # Lint & format check
+pnpm typecheck    # Type check
+pnpm dev          # Watch mode
 ```
 
 ### Project Structure
@@ -137,24 +219,66 @@ Flynn-Project/
 ├── apps/
 │   └── server/         # MCP Server entry point
 ├── config/
-│   ├── flynn.policy.yaml   # Security policy
-│   └── capabilities.yaml   # Agent routing
+│   ├── flynn.policy.yaml
+│   └── capabilities.yaml
 └── .claude/
     └── commands/
-        └── flynn.md    # Slash command definition
+        └── flynn.md    # Slash command
 ```
+
+### Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| [Mastra](https://mastra.ai) | Agent Framework |
+| [MCP](https://modelcontextprotocol.io) | Model Context Protocol |
+| [LibSQL](https://turso.tech/libsql) | Memory Storage |
+| [Biome](https://biomejs.dev) | Linting & Formatting |
+| [Vitest](https://vitest.dev) | Testing |
+
+<br>
 
 ## Architecture
 
-Flynn uses the **Mastra AI Framework** with an Agent Network pattern:
+```
+┌────────────────────────────────────────────────────┐
+│                   Claude Code                       │
+│                        │                            │
+│                  /flynn "task"                      │
+│                        │                            │
+│                   MCP Protocol                      │
+│                        ▼                            │
+│  ┌──────────────────────────────────────────────┐  │
+│  │              Flynn MCP Server                 │  │
+│  │  ┌────────────────────────────────────────┐  │  │
+│  │  │         Orchestrator Agent             │  │  │
+│  │  │      (Routing + Coordination)          │  │  │
+│  │  └───────────────────┬────────────────────┘  │  │
+│  │                      │                       │  │
+│  │         ┌────────────┼────────────┐          │  │
+│  │         ▼            ▼            ▼          │  │
+│  │    ┌────────┐  ┌──────────┐  ┌────────┐     │  │
+│  │    │ Agent  │  │  Agent   │  │ Agent  │     │  │
+│  │    └────────┘  └──────────┘  └────────┘     │  │
+│  │                      │                       │  │
+│  │         ┌────────────┴────────────┐          │  │
+│  │         │         Tools           │          │  │
+│  │         │  shell │ git │ file-ops │          │  │
+│  │         └─────────────────────────┘          │  │
+│  └──────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────┘
+```
 
-- **Orchestrator Agent**: Routes tasks to specialized agents
-- **Specialized Agents**: Handle specific task domains
-- **Healer Agent**: Automatic failure recovery with retry logic
-- **MCP Server**: Exposes tools to Claude Code
-
-Memory is persisted using LibSQL for context continuity across sessions.
+<br>
 
 ## License
 
-MIT
+MIT © 2024
+
+---
+
+<div align="center">
+
+**Built with [Mastra](https://mastra.ai) and [Claude](https://anthropic.com)**
+
+</div>
