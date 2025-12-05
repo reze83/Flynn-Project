@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=200&section=header&text=Flynn&fontSize=80&fontColor=fff&animation=fadeIn&fontAlignY=35&desc=AI%20Agent%20Orchestrator&descSize=20&descAlignY=55" width="100%"/>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=220&section=header&text=Flynn&fontSize=80&fontColor=fff&animation=fadeIn&fontAlignY=30&desc=AI%20Agent%20Orchestrator&descSize=20&descAlignY=52" width="100%"/>
 </div>
 
 <p align="center">
-  <a href="https://github.com/reze83/Flynn-Project/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/reze83/Flynn-Project/ci.yml?style=for-the-badge&logo=github&label=CI&labelColor=1a1a2e&color=16a34a" alt="CI"/></a>
   <img src="https://img.shields.io/badge/Node.js-≥20-339933?style=for-the-badge&logo=node.js&logoColor=white&labelColor=1a1a2e" alt="Node"/>
   <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white&labelColor=1a1a2e" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/Mastra-Framework-FF6B6B?style=for-the-badge&labelColor=1a1a2e" alt="Mastra"/>
   <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge&labelColor=1a1a2e" alt="License"/>
 </p>
 
