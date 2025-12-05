@@ -1,14 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  orchestratorInstructions,
-  installerInstructions,
-  diagnosticInstructions,
-  scaffolderInstructions,
   coderInstructions,
+  dataInstructions,
+  diagnosticInstructions,
+  healerInstructions,
+  installerInstructions,
+  orchestratorInstructions,
   refactorInstructions,
   releaseInstructions,
-  healerInstructions,
-  dataInstructions,
+  scaffolderInstructions,
 } from "../src/instructions.js";
 
 describe("agent instructions", () => {
@@ -24,7 +24,7 @@ describe("agent instructions", () => {
     data: dataInstructions,
   };
 
-  Object.entries(instructions).forEach(([name, instruction]) => {
+  for (const [name, instruction] of Object.entries(instructions)) {
     describe(name, () => {
       it("should be a non-empty string", () => {
         expect(typeof instruction).toBe("string");
@@ -39,7 +39,7 @@ describe("agent instructions", () => {
         expect(instruction).toBe(instruction.trim());
       });
     });
-  });
+  }
 
   describe("orchestrator", () => {
     it("should list all available agents", () => {

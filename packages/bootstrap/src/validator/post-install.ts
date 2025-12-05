@@ -2,8 +2,8 @@
  * Post-installation validators
  */
 
-import type { Validator, ValidationResult } from "./types.js";
 import { commandExists, getCommandVersion, meetsMinimumVersion } from "../installer/idempotent.js";
+import type { ValidationResult, Validator } from "./types.js";
 
 export const nodeValidator: Validator = {
   name: "node",

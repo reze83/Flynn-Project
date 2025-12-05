@@ -3,7 +3,7 @@
  * Analyzes data, generates statistics, runs ML inference
  */
 
-import { createAgentFactory, type AgentFactory } from "@flynn/core";
+import { type AgentFactory, createAgentFactory } from "@flynn/core";
 import { dataInstructions } from "./instructions.js";
 
 /**

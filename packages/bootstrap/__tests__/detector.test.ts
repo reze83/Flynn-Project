@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  detectWSL,
-  detectNode,
-  detectPython,
   detectGit,
+  detectNode,
   detectPackageManagers,
+  detectPython,
+  detectWSL,
 } from "../src/detector/index.js";
 
 describe("detectors", () => {
@@ -18,23 +18,25 @@ describe("detectors", () => {
 
   describe("detectNode", () => {
     it("should detect Node.js", async () => {
-      const result = await detectNode();
-      expect(result).toHaveProperty("installed");
-      expect(result.installed).toBe(true);
-      expect(result).toHaveProperty("version");
+      const result = detectNode();
+      expect(result).toHaveProperty("success");
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveProperty("installed");
+      expect(result.data?.installed).toBe(true);
     });
 
     it("should report if meets minimum version", async () => {
-      const result = await detectNode();
-      expect(result).toHaveProperty("meetsMinimum");
-      expect(typeof result.meetsMinimum).toBe("boolean");
+      const result = detectNode();
+      expect(result.data).toHaveProperty("meetsMinimum");
+      expect(typeof result.data?.meetsMinimum).toBe("boolean");
     });
   });
 
   describe("detectGit", () => {
     it("should detect Git", async () => {
-      const result = await detectGit();
-      expect(result).toHaveProperty("installed");
+      const result = detectGit();
+      expect(result).toHaveProperty("success");
+      expect(result.data).toHaveProperty("installed");
     });
   });
 

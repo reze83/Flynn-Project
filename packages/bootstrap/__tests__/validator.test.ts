@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { generateReport, exportReportJson } from "../src/validator/report.js";
+import { describe, expect, it } from "vitest";
+import { exportReportJson, generateReport } from "../src/validator/report.js";
 import type { ValidationResult } from "../src/validator/types.js";
 
 describe("validator", () => {
@@ -42,9 +42,7 @@ describe("validator", () => {
 
   describe("exportReportJson", () => {
     it("should export valid JSON", () => {
-      const results: ValidationResult[] = [
-        { component: "test", valid: true, message: "OK" },
-      ];
+      const results: ValidationResult[] = [{ component: "test", valid: true, message: "OK" }];
       const report = generateReport(results);
       const json = exportReportJson(report);
 

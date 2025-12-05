@@ -2,11 +2,11 @@
  * uv (Python package manager) installer
  */
 
-import type { Installer, InstallResult, InstallerOptions } from "./types.js";
-import { commandExists, getCommandVersion, runCommand } from "./idempotent.js";
-import { createLogger } from "@flynn/core";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { createLogger } from "@flynn/core";
+import { commandExists, getCommandVersion, runCommand } from "./idempotent.js";
+import type { InstallResult, Installer, InstallerOptions } from "./types.js";
 
 const logger = createLogger("installer:uv");
 
@@ -40,7 +40,8 @@ export const uvInstaller: Installer = {
       // Note: uv installs to ~/.local/bin or ~/.cargo/bin depending on method
       const uvPath = join(homedir(), ".local", "bin", "uv");
       const cargoPath = join(homedir(), ".cargo", "bin", "uv");
-      const version = getCommandVersion("uv") || getCommandVersion(uvPath) || getCommandVersion(cargoPath);
+      const version =
+        getCommandVersion("uv") || getCommandVersion(uvPath) || getCommandVersion(cargoPath);
       return {
         component: "uv",
         status: "installed",

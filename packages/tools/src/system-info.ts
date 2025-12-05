@@ -2,9 +2,9 @@
  * System information tool
  */
 
+import { arch, homedir, hostname, platform, release } from "node:os";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { platform, arch, release, homedir, hostname } from "node:os";
 
 const outputSchema = z.object({
   platform: z.string(),

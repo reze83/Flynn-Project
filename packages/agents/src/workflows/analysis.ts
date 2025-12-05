@@ -4,7 +4,7 @@
  * Multi-step workflow for project analysis.
  */
 
-import { createWorkflow, createStep } from "@mastra/core/workflows";
+import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
 
 /**
@@ -25,7 +25,7 @@ const gatherStep = createStep({
     projectType: z.string().optional(),
   }),
   execute: async ({ inputData }) => {
-    const { path, depth } = inputData;
+    const { path, depth: _depth } = inputData;
     // Simplified gathering logic - will be enhanced with actual file scanning
     return {
       files: [`${path}/src`, `${path}/package.json`],
@@ -63,10 +63,7 @@ const analyzeStep = createStep({
         `Key paths: ${files.join(", ")}`,
         projectType ? `Project type: ${projectType}` : "Unknown project type",
       ],
-      recommendations: [
-        "Consider adding more documentation",
-        "Review test coverage",
-      ],
+      recommendations: ["Consider adding more documentation", "Review test coverage"],
     };
   },
 });

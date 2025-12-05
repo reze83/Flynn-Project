@@ -6,7 +6,7 @@
 
 import { createLogger } from "@flynn/core";
 import { detectEnvironment, printEnvironmentSummary } from "./detector/index.js";
-import { runInstallers, printInstallResults } from "./installer/index.js";
+import { printInstallResults, runInstallers } from "./installer/index.js";
 import { runValidation } from "./validator/index.js";
 
 const logger = createLogger("bootstrap");
@@ -42,7 +42,20 @@ async function main() {
       break;
     }
 
-    case "full":
+    case "help":
+    case "--help":
+    case "-h": {
+      console.log("Usage: npx @flynn/bootstrap [command]\n");
+      console.log("Commands:");
+      console.log("  full      Run full bootstrap (default)");
+      console.log("  detect    Detect environment only");
+      console.log("  install   Run installers only");
+      console.log("  validate  Run validation only");
+      console.log("  help      Show this help\n");
+      console.log("Options:");
+      console.log("  --verbose  Show detailed output\n");
+      break;
+    }
     default: {
       // Full bootstrap flow
       logger.info("Starting full bootstrap...");
@@ -72,21 +85,6 @@ async function main() {
         console.log("✗ Bootstrap completed with issues. See validation report above.\n");
         process.exit(1);
       }
-      break;
-    }
-
-    case "help":
-    case "--help":
-    case "-h": {
-      console.log("Usage: npx @flynn/bootstrap [command]\n");
-      console.log("Commands:");
-      console.log("  full      Run full bootstrap (default)");
-      console.log("  detect    Detect environment only");
-      console.log("  install   Run installers only");
-      console.log("  validate  Run validation only");
-      console.log("  help      Show this help\n");
-      console.log("Options:");
-      console.log("  --verbose  Show detailed output\n");
       break;
     }
   }

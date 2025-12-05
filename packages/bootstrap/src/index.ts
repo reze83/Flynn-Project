@@ -10,4 +10,9 @@ export * from "./validator/index.js";
 // Export main functions for programmatic use
 export { detectEnvironment, printEnvironmentSummary } from "./detector/index.js";
 export { runInstallers, printInstallResults } from "./installer/index.js";
-export { runValidation, validateAll, validateInstallation, validateHealth } from "./validator/index.js";
+export {
+  runValidation,
+  validateAll,
+  validateInstallation,
+  validateHealth,
+} from "./validator/index.js";

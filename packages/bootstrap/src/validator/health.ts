@@ -2,11 +2,11 @@
  * Runtime health checks
  */
 
-import type { Validator, ValidationResult } from "./types.js";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { getDataDir, getConfigDir } from "@flynn/core";
+import { getConfigDir, getDataDir } from "@flynn/core";
+import type { ValidationResult, Validator } from "./types.js";
 
 export const dataDirValidator: Validator = {
   name: "data-dir",
@@ -17,7 +17,7 @@ export const dataDirValidator: Validator = {
         component: "data-dir",
         valid: false,
         message: `Data directory does not exist: ${dataDir}`,
-        details: "Run 'mkdir -p " + dataDir + "' to create it",
+        details: `Run 'mkdir -p ${dataDir}' to create it`,
       };
     }
     return { component: "data-dir", valid: true, message: `Data directory: ${dataDir}` };
@@ -33,7 +33,7 @@ export const configDirValidator: Validator = {
         component: "config-dir",
         valid: false,
         message: `Config directory does not exist: ${configDir}`,
-        details: "Run 'mkdir -p " + configDir + "' to create it",
+        details: `Run 'mkdir -p ${configDir}' to create it`,
       };
     }
     return { component: "config-dir", valid: true, message: `Config directory: ${configDir}` };

@@ -3,7 +3,7 @@
  * Handles installation, setup, and dependency management
  */
 
-import { createAgentFactory, type AgentFactory } from "@flynn/core";
+import { type AgentFactory, createAgentFactory } from "@flynn/core";
 import { installerInstructions } from "./instructions.js";
 
 /**

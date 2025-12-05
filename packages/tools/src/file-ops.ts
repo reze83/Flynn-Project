@@ -2,16 +2,10 @@
  * File operations tool
  */
 
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import {
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-} from "node:fs";
-import { dirname } from "node:path";
 
 const readSchema = z.object({
   operation: z.literal("read"),
@@ -52,13 +46,16 @@ const outputSchema = z.object({
   error: z.string().optional(),
 });
 
+type FileOpsInput = z.infer<typeof inputSchema>;
+
 export const fileOpsTool = createTool({
   id: "file-ops",
   description: "File operations (read, write, exists, list)",
   inputSchema,
   outputSchema,
   execute: async (inputData) => {
-    const { operation, path } = inputData;
+    const input = inputData as unknown as FileOpsInput;
+    const { operation, path } = input;
 
     try {
       switch (operation) {
@@ -79,7 +76,7 @@ export const fileOpsTool = createTool({
         }
 
         case "write": {
-          const { content, createDirs } = inputData as z.infer<typeof writeSchema>;
+          const { content, createDirs } = input as z.infer<typeof writeSchema>;
           if (createDirs) {
             const dir = dirname(path);
             if (!existsSync(dir)) {
@@ -111,9 +108,10 @@ export const fileOpsTool = createTool({
             };
           }
 
-          const { recursive } = inputData as z.infer<typeof listSchema>;
+          const { recursive } = input as z.infer<typeof listSchema>;
           const files: string[] = [];
 
+          // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: recursive dir listing
           function listDir(dir: string, prefix = "") {
             const entries = readdirSync(dir, { withFileTypes: true });
             for (const entry of entries) {

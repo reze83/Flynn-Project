@@ -2,9 +2,9 @@
  * Flynn MCP Server - Main entry point
  */
 
-import { MCPServer } from "@mastra/mcp";
 import { createLogger } from "@flynn/core";
 import { analyzeProjectTool, systemInfoTool } from "@flynn/tools";
+import { MCPServer } from "@mastra/mcp";
 // import { orchestrator } from "@flynn/agents";
 
 const logger = createLogger("server");
@@ -25,8 +25,8 @@ const server = new MCPServer({
 
 logger.info("Flynn MCP Server starting...");
 
-// Start the server
-server.start().catch((error) => {
+// Start the server with stdio transport
+server.startStdio().catch((error: Error) => {
   logger.error({ error }, "Server failed to start");
   process.exit(1);
 });

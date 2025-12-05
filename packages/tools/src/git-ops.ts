@@ -2,9 +2,9 @@
  * Git operations tool
  */
 
+import { type ExecSyncOptions, execSync } from "node:child_process";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { execSync, type ExecSyncOptions } from "node:child_process";
 
 const execOptions: ExecSyncOptions = {
   encoding: "utf-8",
@@ -48,13 +48,16 @@ const outputSchema = z.object({
   error: z.string().optional(),
 });
 
+type GitOpsInput = z.infer<typeof inputSchema>;
+
 export const gitOpsTool = createTool({
   id: "git-ops",
   description: "Git operations (status, log, diff, branch)",
   inputSchema,
   outputSchema,
   execute: async (inputData) => {
-    const { operation, path } = inputData;
+    const input = inputData as unknown as GitOpsInput;
+    const { operation, path } = input;
 
     try {
       let command: string;
@@ -63,14 +66,16 @@ export const gitOpsTool = createTool({
         case "status":
           command = "git status --porcelain";
           break;
-        case "log":
-          const count = "count" in inputData ? inputData.count : 10;
+        case "log": {
+          const count = "count" in input ? input.count : 10;
           command = `git log --oneline -n ${count}`;
           break;
-        case "diff":
-          const staged = "staged" in inputData && inputData.staged;
+        }
+        case "diff": {
+          const staged = "staged" in input && input.staged;
           command = staged ? "git diff --cached" : "git diff";
           break;
+        }
         case "branch":
           command = "git branch -a";
           break;

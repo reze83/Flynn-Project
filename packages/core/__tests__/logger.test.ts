@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { logger, createLogger } from "../src/logger.js";
+import { describe, expect, it } from "vitest";
+import { createLogger, logger } from "../src/logger.js";
 
 describe("logger", () => {
   describe("logger instance", () => {

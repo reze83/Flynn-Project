@@ -3,12 +3,12 @@
  */
 
 import { createLogger } from "@flynn/core";
-import type { InstallResult, InstallerOptions, Installer } from "./types.js";
-import { pnpmInstaller } from "./pnpm.js";
-import { uvInstaller } from "./uv.js";
 import { claudeCodeInstaller } from "./claude-code.js";
-import { sdkTypescriptInstaller } from "./sdk-typescript.js";
+import { pnpmInstaller } from "./pnpm.js";
 import { sdkPythonInstaller } from "./sdk-python.js";
+import { sdkTypescriptInstaller } from "./sdk-typescript.js";
+import type { InstallResult, Installer, InstallerOptions } from "./types.js";
+import { uvInstaller } from "./uv.js";
 
 export * from "./types.js";
 export * from "./idempotent.js";
@@ -34,9 +34,7 @@ export const installers: Installer[] = [
 /**
  * Run all installers
  */
-export async function runInstallers(
-  options?: InstallerOptions,
-): Promise<InstallResult[]> {
+export async function runInstallers(options?: InstallerOptions): Promise<InstallResult[]> {
   const results: InstallResult[] = [];
 
   logger.info("Starting installation process...");

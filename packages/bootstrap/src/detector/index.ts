@@ -2,15 +2,15 @@
  * Environment detection module - aggregates all detectors
  */
 
-import { platform, arch, release } from "node:os";
-import { detectWSL } from "./wsl.js";
-import { detectNode } from "./node.js";
-import { detectPython } from "./python.js";
-import { detectGit } from "./git.js";
-import { detectPackageManagers } from "./package-managers.js";
-import { detectEditors } from "./vscode.js";
+import { arch, platform, release } from "node:os";
 import { detectClaudeCode } from "./claude-code.js";
+import { detectGit } from "./git.js";
+import { detectNode } from "./node.js";
+import { detectPackageManagers } from "./package-managers.js";
+import { detectPython } from "./python.js";
 import type { EnvironmentInfo } from "./types.js";
+import { detectEditors } from "./vscode.js";
+import { detectWSL } from "./wsl.js";
 
 export * from "./types.js";
 export * from "./wsl.js";
@@ -108,7 +108,9 @@ export function printEnvironmentSummary(env: EnvironmentInfo): void {
   console.log(
     `  ${check(env.claudeCode.installed)} Claude Code: ${env.claudeCode.version || "not installed"}`,
   );
-  console.log(`  ${check(env.editors.vscode.installed)} VS Code: ${env.editors.vscode.installed ? "installed" : "not installed"}`);
+  console.log(
+    `  ${check(env.editors.vscode.installed)} VS Code: ${env.editors.vscode.installed ? "installed" : "not installed"}`,
+  );
 
   console.log("");
 }

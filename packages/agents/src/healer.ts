@@ -3,7 +3,7 @@
  * Recovers from failures, retries with different approaches
  */
 
-import { createAgentFactory, type AgentFactory } from "@flynn/core";
+import { type AgentFactory, createAgentFactory } from "@flynn/core";
 import { healerInstructions } from "./instructions.js";
 
 /**

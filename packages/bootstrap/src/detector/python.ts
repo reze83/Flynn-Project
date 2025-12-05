@@ -3,7 +3,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { MIN_PYTHON_VERSION, type DetectorResult } from "./types.js";
+import { type DetectorResult, MIN_PYTHON_VERSION } from "./types.js";
 
 export interface PythonInfo {
   installed: boolean;
@@ -16,7 +16,7 @@ export interface PythonInfo {
 function parseVersion(version: string): [number, number] | null {
   const match = version.match(/(\d+)\.(\d+)/);
   if (!match) return null;
-  return [parseInt(match[1], 10), parseInt(match[2], 10)];
+  return [Number.parseInt(match[1], 10), Number.parseInt(match[2], 10)];
 }
 
 function meetsMinimum(version: string | null): boolean {

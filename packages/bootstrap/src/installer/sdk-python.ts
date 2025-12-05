@@ -2,9 +2,9 @@
  * Anthropic Python SDK installer
  */
 
-import type { Installer, InstallResult, InstallerOptions } from "./types.js";
-import { commandExists, runCommand } from "./idempotent.js";
 import { createLogger } from "@flynn/core";
+import { commandExists, runCommand } from "./idempotent.js";
+import type { InstallResult, Installer, InstallerOptions } from "./types.js";
 
 const logger = createLogger("installer:sdk-python");
 
@@ -13,14 +13,14 @@ export const sdkPythonInstaller: Installer = {
 
   async check(): Promise<boolean> {
     // Check if anthropic package is installed
-    const result = runCommand("python3 -c \"import anthropic; print(anthropic.__version__)\"");
+    const result = runCommand('python3 -c "import anthropic; print(anthropic.__version__)"');
     return result.success;
   },
 
   async install(options?: InstallerOptions): Promise<InstallResult> {
     if (!options?.force && (await this.check())) {
       const versionResult = runCommand(
-        "python3 -c \"import anthropic; print(anthropic.__version__)\"",
+        'python3 -c "import anthropic; print(anthropic.__version__)"',
       );
       logger.info({ version: versionResult.output }, "Anthropic SDK (Python) already installed");
       return {
@@ -39,7 +39,7 @@ export const sdkPythonInstaller: Installer = {
 
     if (result.success) {
       const versionResult = runCommand(
-        "python3 -c \"import anthropic; print(anthropic.__version__)\"",
+        'python3 -c "import anthropic; print(anthropic.__version__)"',
       );
       return {
         component: "sdk-python",

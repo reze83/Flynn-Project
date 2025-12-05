@@ -2,8 +2,8 @@
  * WSL/WSL2 detection
  */
 
-import { release } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
+import { release } from "node:os";
 
 export interface WSLInfo {
   isWSL: boolean;

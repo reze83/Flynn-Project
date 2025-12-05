@@ -2,10 +2,10 @@
  * Validator module - aggregates all validators
  */
 
-import type { ValidationResult, ValidationReport, Validator } from "./types.js";
-import { postInstallValidators } from "./post-install.js";
 import { healthValidators } from "./health.js";
-import { generateReport, printReport, exportReportJson } from "./report.js";
+import { postInstallValidators } from "./post-install.js";
+import { generateReport, printReport } from "./report.js";
+import type { ValidationReport, ValidationResult, Validator } from "./types.js";
 
 export * from "./types.js";
 export * from "./post-install.js";
@@ -70,7 +70,6 @@ export async function runValidation(
     case "health":
       report = await validateHealth();
       break;
-    case "all":
     default:
       report = await validateAll();
       break;

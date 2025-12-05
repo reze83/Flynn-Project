@@ -2,9 +2,9 @@
  * Shell command execution tool
  */
 
+import { type ExecSyncOptions, execSync } from "node:child_process";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { execSync, type ExecSyncOptions } from "node:child_process";
 
 // Safe command patterns (from flynn.policy.yaml)
 const ALLOWED_PATTERNS = [
@@ -58,7 +58,10 @@ const outputSchema = z.object({
   blocked: z.boolean().optional(),
 });
 
-function isCommandAllowed(command: string, allowUnsafe: boolean): { allowed: boolean; reason?: string } {
+function isCommandAllowed(
+  command: string,
+  allowUnsafe: boolean,
+): { allowed: boolean; reason?: string } {
   // Always block dangerous patterns
   for (const pattern of BLOCKED_PATTERNS) {
     if (pattern.test(command)) {
@@ -81,13 +84,15 @@ function isCommandAllowed(command: string, allowUnsafe: boolean): { allowed: boo
   return { allowed: false, reason: "Command not in allowed list" };
 }
 
+type ShellInput = z.infer<typeof inputSchema>;
+
 export const shellTool = createTool({
   id: "shell",
   description: "Execute shell commands safely",
   inputSchema,
   outputSchema,
   execute: async (inputData) => {
-    const { command, cwd, timeout, allowUnsafe } = inputData;
+    const { command, cwd, timeout, allowUnsafe } = inputData as unknown as ShellInput;
 
     // Validate command
     const validation = isCommandAllowed(command, allowUnsafe);
@@ -117,7 +122,11 @@ export const shellTool = createTool({
         stdout: stdout.trim(),
       };
     } catch (error) {
-      const execError = error as { stdout?: Buffer | string; stderr?: Buffer | string; message?: string };
+      const execError = error as {
+        stdout?: Buffer | string;
+        stderr?: Buffer | string;
+        message?: string;
+      };
       return {
         success: false,
         command,

@@ -4,7 +4,7 @@
  * Multi-step workflow for environment setup and validation.
  */
 
-import { createWorkflow, createStep } from "@mastra/core/workflows";
+import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
 
 /**
@@ -28,7 +28,7 @@ const detectStep = createStep({
     }),
     packageManagers: z.array(z.string()),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData: _inputData }) => {
     // Detection logic - simplified for workflow structure
     const platform = process.platform;
     const wsl = !!process.env.WSL_DISTRO_NAME;
@@ -123,9 +123,7 @@ const validateStep = createStep({
       report: {
         passed: inputData.installed.length + inputData.skipped.length,
         failed: inputData.failed.length,
-        warnings: hasFailed
-          ? inputData.failed.map((f) => `Failed to install: ${f}`)
-          : [],
+        warnings: hasFailed ? inputData.failed.map((f: string) => `Failed to install: ${f}`) : [],
       },
     };
   },

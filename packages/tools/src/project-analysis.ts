@@ -2,10 +2,10 @@
  * Project analysis tool
  */
 
+import { readdirSync } from "node:fs";
+import { extname, join } from "node:path";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { readdirSync } from "node:fs";
-import { join, extname } from "node:path";
 
 const inputSchema = z.object({
   projectPath: z.string().describe("Path to the project directory"),
@@ -21,18 +21,21 @@ const outputSchema = z.object({
   frameworks: z.array(z.string()),
 });
 
+type AnalyzeInput = z.infer<typeof inputSchema>;
+
 export const analyzeProjectTool = createTool({
   id: "analyze-project",
   description: "Analyze project directory structure and provide insights",
   inputSchema,
   outputSchema,
   execute: async (inputData) => {
-    const { projectPath, maxDepth } = inputData;
+    const { projectPath, maxDepth } = inputData as unknown as AnalyzeInput;
 
     const stats = { files: 0, directories: 0 };
     const extensions = new Set<string>();
     const frameworks: string[] = [];
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: recursive scanning logic
     function scan(dir: string, depth: number) {
       if (depth > maxDepth) return;
 

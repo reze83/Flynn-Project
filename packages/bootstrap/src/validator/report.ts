@@ -2,7 +2,7 @@
  * Validation report generation
  */
 
-import type { ValidationResult, ValidationReport } from "./types.js";
+import type { ValidationReport, ValidationResult } from "./types.js";
 
 /**
  * Generate a validation report from results

@@ -2,9 +2,9 @@
  * pnpm installer
  */
 
-import type { Installer, InstallResult, InstallerOptions } from "./types.js";
-import { commandExists, getCommandVersion, runCommand } from "./idempotent.js";
 import { createLogger } from "@flynn/core";
+import { commandExists, getCommandVersion, runCommand } from "./idempotent.js";
+import type { InstallResult, Installer, InstallerOptions } from "./types.js";
 
 const logger = createLogger("installer:pnpm");
 

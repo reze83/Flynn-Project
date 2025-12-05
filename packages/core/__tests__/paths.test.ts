@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getDataDir, getConfigDir, getCacheDir, getMemoryDbPath } from "../src/paths.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getCacheDir, getConfigDir, getDataDir, getMemoryDbPath } from "../src/paths.js";
 
 describe("paths", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     // Reset env vars
-    delete process.env.XDG_DATA_HOME;
-    delete process.env.XDG_CONFIG_HOME;
-    delete process.env.XDG_CACHE_HOME;
+    process.env.XDG_DATA_HOME = undefined;
+    process.env.XDG_CONFIG_HOME = undefined;
+    process.env.XDG_CACHE_HOME = undefined;
   });
 
   afterEach(() => {

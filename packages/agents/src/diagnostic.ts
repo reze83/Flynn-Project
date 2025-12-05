@@ -3,7 +3,7 @@
  * Diagnoses issues, analyzes errors, troubleshoots problems
  */
 
-import { createAgentFactory, type AgentFactory } from "@flynn/core";
+import { type AgentFactory, createAgentFactory } from "@flynn/core";
 import { diagnosticInstructions } from "./instructions.js";
 
 /**

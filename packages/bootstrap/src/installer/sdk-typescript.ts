@@ -2,11 +2,11 @@
  * Anthropic TypeScript SDK installer (for agent development)
  */
 
-import type { Installer, InstallResult, InstallerOptions } from "./types.js";
-import { runCommand } from "./idempotent.js";
-import { createLogger } from "@flynn/core";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { createLogger } from "@flynn/core";
+import { runCommand } from "./idempotent.js";
+import type { InstallResult, Installer, InstallerOptions } from "./types.js";
 
 const logger = createLogger("installer:sdk-ts");
 

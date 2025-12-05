@@ -3,21 +3,21 @@
  * Main routing agent that delegates to specialized sub-agents
  */
 
-import { Agent } from "@mastra/core/agent";
-import { Memory } from "@mastra/memory";
-import { LibSQLStore } from "@mastra/libsql";
 import { anthropic } from "@ai-sdk/anthropic";
 import { getMemoryDbPath } from "@flynn/core";
+import { Agent } from "@mastra/core/agent";
+import { LibSQLStore } from "@mastra/libsql";
+import { Memory } from "@mastra/memory";
 
-import { orchestratorInstructions } from "./instructions.js";
-import { installer } from "./installer.js";
-import { diagnostic } from "./diagnostic.js";
-import { scaffolder } from "./scaffolder.js";
 import { coder } from "./coder.js";
+import { data } from "./data.js";
+import { diagnostic } from "./diagnostic.js";
+import { healer } from "./healer.js";
+import { installer } from "./installer.js";
+import { orchestratorInstructions } from "./instructions.js";
 import { refactor } from "./refactor.js";
 import { release } from "./release.js";
-import { healer } from "./healer.js";
-import { data } from "./data.js";
+import { scaffolder } from "./scaffolder.js";
 import { analysisWorkflow, bootstrapWorkflow } from "./workflows/index.js";
 
 // Memory storage path (XDG compliant via @flynn/core)
@@ -26,7 +26,6 @@ const memoryPath = getMemoryDbPath();
 // Shared memory instance for conversation context
 const memory = new Memory({
   storage: new LibSQLStore({
-    id: "flynn-memory",
     url: `file:${memoryPath}`,
   }),
   options: {
@@ -49,38 +48,34 @@ export const orchestrator = new Agent({
   memory,
 
   // Sub-agents for delegation via Agent Network
-  agents: [installer, diagnostic, scaffolder, coder, refactor, release, healer, data],
+  // biome-ignore lint/suspicious/noExplicitAny: Agent Network requires this cast
+  agents: [installer, diagnostic, scaffolder, coder, refactor, release, healer, data] as any,
 
   // Workflows for multi-step operations via Agent Network
   workflows: {
     analysisWorkflow,
     bootstrapWorkflow,
   },
-
-  // Note: inputProcessors/outputProcessors for Guardrails can be added here
-  // See DESIGN.md "LLM Guardrails" section for implementation
 });
 
 /**
  * Generate response using the orchestrator
  *
  * @param prompt - User's request
- * @param options - Optional configuration (toolsets for dynamic MCP tools)
+ * @param options - Optional configuration
  */
 export async function generateResponse(
   prompt: string,
   options?: {
     resourceId?: string;
     threadId?: string;
-    toolsets?: Record<string, unknown>;
   },
-) {
-  const { resourceId = "default", threadId, toolsets } = options ?? {};
+): Promise<unknown> {
+  const { resourceId = "default", threadId } = options ?? {};
 
   return orchestrator.generate(prompt, {
     resourceId,
     threadId,
-    toolsets, // Dynamic MCP tools injection
   });
 }
 
@@ -88,22 +83,20 @@ export async function generateResponse(
  * Stream response using the orchestrator
  *
  * @param prompt - User's request
- * @param options - Optional configuration (toolsets for dynamic MCP tools)
+ * @param options - Optional configuration
  */
 export async function streamResponse(
   prompt: string,
   options?: {
     resourceId?: string;
     threadId?: string;
-    toolsets?: Record<string, unknown>;
   },
-) {
-  const { resourceId = "default", threadId, toolsets } = options ?? {};
+): Promise<unknown> {
+  const { resourceId = "default", threadId } = options ?? {};
 
   return orchestrator.stream(prompt, {
     resourceId,
     threadId,
-    toolsets, // Dynamic MCP tools injection
   });
 }
 

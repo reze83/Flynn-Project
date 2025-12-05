@@ -4,10 +4,10 @@
  * Factory for creating and configuring MCP servers.
  */
 
-import { MCPServer } from "@mastra/mcp";
-import type { Tool } from "@mastra/core/tools";
 import type { Agent } from "@mastra/core/agent";
+import type { Tool } from "@mastra/core/tools";
 import type { Workflow } from "@mastra/core/workflows";
+import { MCPServer } from "@mastra/mcp";
 import { createLogger } from "./logger.js";
 
 const logger = createLogger("mcp-server");
@@ -40,7 +40,13 @@ export function createMCPServer(config: MCPServerConfig): MCPServer {
   const { id, name, version = "1.0.0", tools = {}, agents = {}, workflows = {} } = config;
 
   logger.info(
-    { id, name, version, toolCount: Object.keys(tools).length, agentCount: Object.keys(agents).length },
+    {
+      id,
+      name,
+      version,
+      toolCount: Object.keys(tools).length,
+      agentCount: Object.keys(agents).length,
+    },
     "Creating MCP server",
   );
 

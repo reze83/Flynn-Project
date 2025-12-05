@@ -3,7 +3,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { MIN_NODE_VERSION, type DetectorResult } from "./types.js";
+import { type DetectorResult, MIN_NODE_VERSION } from "./types.js";
 
 export interface NodeInfo {
   installed: boolean;
@@ -29,7 +29,7 @@ export function detectNode(): DetectorResult<NodeInfo> {
 
     // Parse version (e.g., "v20.10.0" -> 20)
     const versionMatch = versionOutput.match(/^v(\d+)/);
-    const majorVersion = versionMatch ? parseInt(versionMatch[1], 10) : null;
+    const majorVersion = versionMatch ? Number.parseInt(versionMatch[1], 10) : null;
     const meetsMinimum = majorVersion !== null && majorVersion >= MIN_NODE_VERSION;
 
     return {

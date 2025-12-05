@@ -5,8 +5,8 @@
  * Supports dynamic model selection via Factory Pattern.
  */
 
-import { Agent, type AgentConfig } from "@mastra/core/agent";
 import { anthropic } from "@ai-sdk/anthropic";
+import { Agent, type AgentConfig, type ToolsetsInput } from "@mastra/core/agent";
 import { createLogger } from "./logger.js";
 
 /**
@@ -78,7 +78,10 @@ export function createFlynnAgent(config: FlynnAgentConfig, tier?: ModelTier): Ag
   const logger = createLogger(`agent:${config.id}`);
   const model = config.model || getAgentModel(tier);
 
-  logger.debug({ id: config.id, name: config.name, tier: tier || "default" }, "Creating Flynn agent");
+  logger.debug(
+    { id: config.id, name: config.name, tier: tier || "default" },
+    "Creating Flynn agent",
+  );
 
   return new Agent({
     ...config,
@@ -124,9 +127,7 @@ export interface ExecutionOptions {
   /** Thread ID for conversation */
   threadId?: string;
   /** Dynamic toolsets from MCP */
-  toolsets?: Record<string, unknown>;
-  /** Maximum tokens to generate */
-  maxTokens?: number;
+  toolsets?: ToolsetsInput;
 }
 
 /**
@@ -140,14 +141,13 @@ export async function executeAgent(
   agent: Agent,
   prompt: string,
   options: ExecutionOptions = {},
-) {
-  const { resourceId = "default", threadId, toolsets, maxTokens } = options;
+): Promise<unknown> {
+  const { resourceId = "default", threadId, toolsets } = options;
 
   return agent.generate(prompt, {
     resourceId,
     threadId,
     toolsets,
-    maxTokens,
   });
 }
 
@@ -162,14 +162,13 @@ export async function streamAgent(
   agent: Agent,
   prompt: string,
   options: ExecutionOptions = {},
-) {
-  const { resourceId = "default", threadId, toolsets, maxTokens } = options;
+): Promise<unknown> {
+  const { resourceId = "default", threadId, toolsets } = options;
 
   return agent.stream(prompt, {
     resourceId,
     threadId,
     toolsets,
-    maxTokens,
   });
 }
 

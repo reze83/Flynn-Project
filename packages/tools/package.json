@@ -18,11 +18,12 @@
   },
   "dependencies": {
     "@flynn/core": "workspace:*",
-    "@mastra/core": "^0.9.0",
+    "@mastra/core": "^0.24.6",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "memfs": "^4.51.1",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"
   }

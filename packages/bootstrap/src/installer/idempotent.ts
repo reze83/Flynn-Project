@@ -2,7 +2,7 @@
  * Idempotent installation helpers
  */
 
-import { execSync, type ExecSyncOptions } from "node:child_process";
+import { type ExecSyncOptions, execSync } from "node:child_process";
 import { createLogger } from "@flynn/core";
 
 const logger = createLogger("installer");
@@ -28,10 +28,7 @@ export function commandExists(command: string): boolean {
 /**
  * Get command version
  */
-export function getCommandVersion(
-  command: string,
-  versionFlag = "--version",
-): string | null {
+export function getCommandVersion(command: string, versionFlag = "--version"): string | null {
   try {
     const output = execSync(`${command} ${versionFlag}`, defaultExecOptions);
     return (output as string).trim().split("\n")[0];
@@ -66,17 +63,14 @@ export function runCommand(
 /**
  * Check version meets minimum
  */
-export function meetsMinimumVersion(
-  current: string,
-  minimum: string,
-): boolean {
+export function meetsMinimumVersion(current: string, minimum: string): boolean {
   const parseVersion = (v: string): number[] => {
     const match = v.match(/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
     if (!match) return [0, 0, 0];
     return [
-      parseInt(match[1] || "0", 10),
-      parseInt(match[2] || "0", 10),
-      parseInt(match[3] || "0", 10),
+      Number.parseInt(match[1] || "0", 10),
+      Number.parseInt(match[2] || "0", 10),
+      Number.parseInt(match[3] || "0", 10),
     ];
   };
 
