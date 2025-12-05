@@ -139,10 +139,9 @@ Flynn-Project/
 ├── config/
 │   ├── flynn.policy.yaml   # Security policy
 │   └── capabilities.yaml   # Agent routing
-├── .claude/
-│   └── commands/
-│       └── flynn.md    # Slash command definition
-└── DESIGN.md           # Architecture documentation
+└── .claude/
+    └── commands/
+        └── flynn.md    # Slash command definition
 ```
 
 ## Architecture
