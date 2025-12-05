@@ -77,8 +77,8 @@ Flynn-Project ist ein **Mastra-powered** autonomer KI-Agent-Orchestrator, der Cl
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| @mastra/core | ^0.9.0 | Agent Framework |
-| @mastra/mcp | ^0.14.0 | MCP Server/Client |
+| @mastra/core | ^0.24.6 | Agent Framework |
+| @mastra/mcp | ^0.3.3 | MCP Server/Client |
 | pino | ^9.0.0 | Structured Logging |
 | zod | ^3.24.0 | Schema Validation |
 | @ai-sdk/anthropic | ^1.0.0 | Claude LLM Provider |
@@ -98,8 +98,8 @@ Flynn-Project ist ein **Mastra-powered** autonomer KI-Agent-Orchestrator, der Cl
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| @mastra/memory | ^0.3.0 | Agent Memory System |
-| @mastra/libsql | ^0.3.0 | SQLite Storage Backend |
+| @mastra/memory | ^0.15.12 | Agent Memory System |
+| @mastra/libsql | ^0.16.3 | SQLite Storage Backend |
 
 ### Dev Dependencies
 
@@ -436,50 +436,21 @@ permissions:
     timeout_seconds: 300
 ```
 
-### LLM Guardrails (inputProcessors/outputProcessors)
+### LLM Guardrails (Planned)
 
-Zusätzlich zur policy.yaml bietet Mastra LLM-Level Guardrails für Defense-in-Depth:
+> **Status:** Die Guardrails API (`inputProcessors`/`outputProcessors`) ist in der aktuellen
+> Mastra-Version (^0.24.x) noch nicht verfügbar. Die Implementierung erfolgt, sobald die API
+> stabil released wird.
+
+Geplante Defense-in-Depth Architektur:
 
 | Layer | Mechanismus | Schutz vor |
 |-------|-------------|------------|
 | OS-Level | flynn.policy.yaml | Shell-Injection, Pfad-Traversal |
-| LLM-Level | inputProcessors | Prompt Injection, PII-Leaks |
-| LLM-Level | outputProcessors | Sensitive Daten in Responses |
+| LLM-Level | inputProcessors (geplant) | Prompt Injection, PII-Leaks |
+| LLM-Level | outputProcessors (geplant) | Sensitive Daten in Responses |
 
-```typescript
-// packages/agents/src/orchestrator.ts
-import { Agent } from "@mastra/core/agent";
-import { PromptInjectionDetector, PIIDetector } from "@mastra/core/processors";
-
-export const orchestrator = new Agent({
-  id: "flynn-orchestrator",
-  // ... other config
-
-  // Input validation (before LLM)
-  inputProcessors: [
-    new PromptInjectionDetector({
-      model: "anthropic/claude-haiku-4-5-20251001", // Fast model for validation
-      threshold: 0.8,
-      strategy: "block",
-      detectionTypes: ["injection", "jailbreak", "system-override"],
-    }),
-  ],
-
-  // Output validation (after LLM)
-  outputProcessors: [
-    new PIIDetector({
-      model: "anthropic/claude-haiku-4-5-20251001",
-      threshold: 0.6,
-      strategy: "redact",
-      redactionMethod: "mask",
-      detectionTypes: ["api-key", "password", "credit-card"],
-    }),
-  ],
-});
-```
-
-> **Note:** Guardrails sind optional und können pro Agent aktiviert werden.
-> Für v1: Nur Orchestrator benötigt Guardrails (Sub-Agents erben indirekt).
+Aktuell wird nur OS-Level Protection via `flynn.policy.yaml` unterstützt.
 
 ### capabilities.yaml
 
@@ -1035,34 +1006,35 @@ npx @flynn/bootstrap "$@"
 
 ## Development Phases
 
-### Phase 1: Foundation
-- [ ] Monorepo setup (pnpm workspace)
-- [ ] @flynn/core package
-- [ ] @flynn/tools package (migrate existing)
-- [ ] apps/server (migrate existing)
+### Phase 1: Foundation ✅
+- [x] Monorepo setup (pnpm workspace)
+- [x] @flynn/core package
+- [x] @flynn/tools package (migrate existing)
+- [x] apps/server (migrate existing)
 
-### Phase 2: Bootstrap
-- [ ] @flynn/bootstrap package
-- [ ] Environment detectors
-- [ ] Installers (Claude Code, SDKs)
-- [ ] Validators
+### Phase 2: Bootstrap ✅
+- [x] @flynn/bootstrap package
+- [x] Environment detectors
+- [x] Installers (Claude Code, SDKs)
+- [x] Validators
 
-### Phase 3: Agents
-- [ ] @flynn/agents package
-- [ ] Orchestrator with routing
-- [ ] Sub-agents (installer, diagnostic, scaffolder, coder, refactor, release)
-- [ ] Healer agent
+### Phase 3: Agents ✅
+- [x] @flynn/agents package
+- [x] Orchestrator with routing
+- [x] Sub-agents (installer, diagnostic, scaffolder, coder, refactor, release)
+- [x] Healer agent
+- [x] Data agent
 
-### Phase 4: Integration
+### Phase 4: Integration (Partial)
 - [ ] /flynn slash command
 - [ ] flynn.policy.yaml enforcement
 - [ ] capabilities.yaml routing
-- [ ] Python package restructure
+- [x] Python package restructure
 
-### Phase 5: Polish
-- [ ] Documentation
-- [ ] Tests
-- [ ] GitHub Actions CI/CD
+### Phase 5: Polish ✅
+- [x] Documentation (DESIGN.md)
+- [x] Tests (169 unit tests)
+- [x] GitHub Actions CI/CD
 - [ ] README + Installation guide
 
 ## Tool Registration Pattern
@@ -1163,7 +1135,6 @@ const memoryPath = getMemoryDbPath();
 
 const memory = new Memory({
   storage: new LibSQLStore({
-    id: "flynn-memory",
     url: `file:${memoryPath}`,
   }),
   options: {
