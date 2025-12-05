@@ -174,12 +174,12 @@ Flynn-Project/
 <details>
 <summary>Prerequisites</summary>
 
-| Requirement | Version | Required |
-|:------------|:--------|:--------:|
-| Node.js | `≥ 20` | ✓ |
-| pnpm | `≥ 9` | ✓ |
-| Anthropic API Key | - | ✓ |
-| Python | `≥ 3.11` | ○ |
+| Requirement | Version | Notes |
+|:------------|:--------|:------|
+| Node.js | `≥ 20` | Required |
+| pnpm | `≥ 9` | Required |
+| Claude Code | latest | With Pro/Max plan or API key |
+| Python | `≥ 3.11` | Optional (Data/ML) |
 
 </details>
 
