@@ -142,8 +142,7 @@ Flynn-Project/
 ├── .claude/
 │   └── commands/
 │       └── flynn.md    # Slash command definition
-└── docs/
-    └── DESIGN.md       # Architecture documentation
+└── DESIGN.md           # Architecture documentation
 ```
 
 ## Architecture

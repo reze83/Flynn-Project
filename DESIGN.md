@@ -338,8 +338,7 @@ Flynn-Project/
 │   └── commands/
 │       └── flynn.md                # /flynn slash command
 │
-└── docs/
-    └── DESIGN.md                   # This file (includes architecture & setup)
+└── DESIGN.md                       # This file (includes architecture & setup)
 ```
 
 ## Component Specifications
