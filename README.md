@@ -179,7 +179,7 @@ Flynn-Project/
 | Node.js | `≥ 20` | Required |
 | pnpm | `≥ 9` | Required |
 | Claude Code | latest | With Pro/Max plan or API key |
-| Python | `≥ 3.11` | Optional (Data/ML) |
+| Python | `≥ 3.11` | Optional, recommended |
 
 </details>
 
