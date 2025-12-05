@@ -179,18 +179,12 @@ Flynn-Project/
 |:------------|:------|
 | Claude Code | With Pro/Max plan or API key |
 
-**Auto-installed by install.sh**
-| Package | Version |
-|:--------|:--------|
-| Node.js | `≥ 20` |
-| pnpm | `≥ 9` |
+**install.sh offers two modes:**
 
-**Recommended for full features**
-| Package | Version | Notes |
-|:--------|:--------|:------|
-| Python | `≥ 3.11` | Data/ML agents |
-| uv | latest | Python package manager |
-| Git | `≥ 2.0` | git-ops tools |
+| Mode | Installs | Use case |
+|:-----|:---------|:---------|
+| **Full** | Node.js, pnpm, Python, uv, Git | All features including Data/ML |
+| **Minimal** | Node.js, pnpm | Basic agents only |
 
 </details>
 
