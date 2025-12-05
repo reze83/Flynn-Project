@@ -42,3 +42,23 @@ venv/
 .local/
 *.db
 *.db-journal
+
+# Auto-generated files
+STATUS.md
+
+# Python caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+.eggs/
+
+# Build tools
+.turbo/
+.cache/
+*.tgz
+
+# Temp files
+*.tmp
+*.temp
+.~*
