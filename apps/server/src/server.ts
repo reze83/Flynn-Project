@@ -15,8 +15,8 @@ const server = new MCPServer({
   version: "1.0.0",
   description: "Mastra-powered AI agent orchestrator for development tasks",
   tools: {
-    analyzeProjectTool,
-    systemInfoTool,
+    "analyze-project": analyzeProjectTool,
+    "system-info": systemInfoTool,
   },
   // agents: {
   //   orchestrator, // Becomes ask_orchestrator

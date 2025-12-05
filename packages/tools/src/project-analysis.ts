@@ -4,7 +4,7 @@
 
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join, extname } from "node:path";
 
 const inputSchema = z.object({

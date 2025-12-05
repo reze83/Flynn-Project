@@ -339,9 +339,7 @@ Flynn-Project/
 │       └── flynn.md                # /flynn slash command
 │
 └── docs/
-    ├── DESIGN.md                   # This file
-    ├── ARCHITECTURE.md             # Technical details
-    └── INSTALLATION.md             # Setup guide
+    └── DESIGN.md                   # This file (includes architecture & setup)
 ```
 
 ## Component Specifications
@@ -1151,48 +1149,44 @@ The orchestrator uses Mastra's Agent Network for multi-agent coordination:
 
 ```typescript
 // packages/agents/src/orchestrator.ts
-import { homedir } from "node:os";
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
-import { installer, diagnostic, scaffolder, coder, refactor, release, healer, data } from "./index.js";
-import { analyzeProjectTool } from "@flynn/tools";
+import { anthropic } from "@ai-sdk/anthropic";
+import { getMemoryDbPath } from "@flynn/core";
 import { orchestratorInstructions } from "./instructions.js";
+import { installer, diagnostic, scaffolder, coder, refactor, release, healer, data } from "./index.js";
+import { analysisWorkflow, bootstrapWorkflow } from "./workflows/index.js";
+
+// Memory storage path (XDG compliant via @flynn/core)
+const memoryPath = getMemoryDbPath();
+
+const memory = new Memory({
+  storage: new LibSQLStore({
+    id: "flynn-memory",
+    url: `file:${memoryPath}`,
+  }),
+  options: {
+    lastMessages: 20,
+  },
+});
 
 export const orchestrator = new Agent({
   id: "flynn-orchestrator",
-  name: "Flynn Orchestrator",
-  description: "Routes requests to specialized sub-agents based on intent analysis",
+  name: "Flynn",
+  description: "AI development orchestrator that routes tasks to specialized agents",
+  model: anthropic("claude-opus-4-5-20251101"),
   instructions: orchestratorInstructions,
-  model: process.env.FLYNN_AGENT_MODEL || "anthropic/claude-opus-4-5-20251101",
+  memory,
 
-  // Sub-agents for network routing (description-based)
-  agents: {
-    installer,
-    diagnostic,
-    scaffolder,
-    coder,
-    refactor,
-    release,
-    healer,
-    data,
+  // Sub-agents for delegation via Agent Network
+  agents: [installer, diagnostic, scaffolder, coder, refactor, release, healer, data],
+
+  // Workflows for multi-step operations
+  workflows: {
+    analysisWorkflow,
+    bootstrapWorkflow,
   },
-
-  // Direct tools for orchestrator
-  tools: {
-    analyzeProjectTool,
-  },
-
-  // Memory for context persistence
-  memory: new Memory({
-    storage: new LibSQLStore({
-      id: "flynn-memory",
-      url: `file:${process.env.XDG_DATA_HOME || `${homedir()}/.local/share`}/flynn/memory.db`,
-    }),
-    options: {
-      lastMessages: 20,
-    },
-  }),
 });
 ```
 

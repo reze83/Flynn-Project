@@ -2,8 +2,6 @@
 
 __version__ = "1.0.0"
 
-# TODO: Implement ML tools
-# - sentiment
-# - summarize
-# - classify
-# - embeddings
+from .tools import ML_TOOLS, execute_ml_tool
+
+__all__ = ["ML_TOOLS", "execute_ml_tool", "__version__"]

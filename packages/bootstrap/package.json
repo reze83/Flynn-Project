@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/cli.js",
     "test": "vitest run"
   },
