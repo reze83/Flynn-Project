@@ -1,0 +1,31 @@
+[project]
+name = "flynn-python"
+version = "1.0.0"
+description = "Flynn Python MCP tools for data analysis and ML"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "mcp>=1.0.0",
+    "pandas>=2.0.0",
+    "numpy>=1.26.0",
+    "transformers>=4.40.0",
+    "torch>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]

@@ -1,0 +1,23 @@
+version: "1.0"
+permissions:
+  shell:
+    allow:
+      - "git *"
+      - "pnpm *"
+      - "npm *"
+      - "uv *"
+      - "node *"
+      - "python *"
+    deny:
+      - "rm -rf /"
+      - "sudo *"
+  paths:
+    writable:
+      - "${XDG_DATA_HOME}/flynn"
+      - "${PROJECT_ROOT}"
+    readonly:
+      - "/etc"
+      - "/usr"
+  agents:
+    max_iterations: 10
+    timeout_seconds: 300
