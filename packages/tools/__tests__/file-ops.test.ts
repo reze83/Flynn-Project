@@ -20,8 +20,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/test.txt": "Hello, World!" });
 
       const result = await fileOpsTool.execute({
-        operation: "read",
-        path: "/test.txt",
+        context: { operation: "read", path: "/test.txt" },
       });
 
       expect(result.success).toBe(true);
@@ -31,8 +30,7 @@ describe("fileOpsTool", () => {
 
     it("returns error for missing file", async () => {
       const result = await fileOpsTool.execute({
-        operation: "read",
-        path: "/missing.txt",
+        context: { operation: "read", path: "/missing.txt" },
       });
 
       expect(result.success).toBe(false);
@@ -45,8 +43,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/multiline.txt": content });
 
       const result = await fileOpsTool.execute({
-        operation: "read",
-        path: "/multiline.txt",
+        context: { operation: "read", path: "/multiline.txt" },
       });
 
       expect(result.success).toBe(true);
@@ -57,8 +54,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/empty.txt": "" });
 
       const result = await fileOpsTool.execute({
-        operation: "read",
-        path: "/empty.txt",
+        context: { operation: "read", path: "/empty.txt" },
       });
 
       expect(result.success).toBe(true);
@@ -71,10 +67,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        operation: "write",
-        path: "/output.txt",
-        content: "Test content",
-        createDirs: false,
+        context: { operation: "write", path: "/output.txt", content: "Test content", createDirs: false },
       });
 
       expect(result.success).toBe(true);
@@ -86,10 +79,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        operation: "write",
-        path: "/nested/deep/file.txt",
-        content: "Nested content",
-        createDirs: true,
+        context: { operation: "write", path: "/nested/deep/file.txt", content: "Nested content", createDirs: true },
       });
 
       expect(result.success).toBe(true);
@@ -100,10 +90,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/existing.txt": "old content" });
 
       const result = await fileOpsTool.execute({
-        operation: "write",
-        path: "/existing.txt",
-        content: "new content",
-        createDirs: false,
+        context: { operation: "write", path: "/existing.txt", content: "new content", createDirs: false },
       });
 
       expect(result.success).toBe(true);
@@ -114,10 +101,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        operation: "write",
-        path: "/empty.txt",
-        content: "",
-        createDirs: false,
+        context: { operation: "write", path: "/empty.txt", content: "", createDirs: false },
       });
 
       expect(result.success).toBe(true);
@@ -130,8 +114,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/exists.txt": "content" });
 
       const result = await fileOpsTool.execute({
-        operation: "exists",
-        path: "/exists.txt",
+        context: { operation: "exists", path: "/exists.txt" },
       });
 
       expect(result.success).toBe(true);
@@ -143,8 +126,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        operation: "exists",
-        path: "/missing.txt",
+        context: { operation: "exists", path: "/missing.txt" },
       });
 
       expect(result.success).toBe(true);
@@ -155,8 +137,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/mydir/file.txt": "content" });
 
       const result = await fileOpsTool.execute({
-        operation: "exists",
-        path: "/mydir",
+        context: { operation: "exists", path: "/mydir" },
       });
 
       expect(result.success).toBe(true);
@@ -173,9 +154,7 @@ describe("fileOpsTool", () => {
       });
 
       const result = await fileOpsTool.execute({
-        operation: "list",
-        path: "/mydir",
-        recursive: false,
+        context: { operation: "list", path: "/mydir", recursive: false },
       });
 
       expect(result.success).toBe(true);
@@ -193,9 +172,7 @@ describe("fileOpsTool", () => {
       });
 
       const result = await fileOpsTool.execute({
-        operation: "list",
-        path: "/mydir",
-        recursive: true,
+        context: { operation: "list", path: "/mydir", recursive: true },
       });
 
       expect(result.success).toBe(true);
@@ -210,9 +187,7 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        operation: "list",
-        path: "/nonexistent",
-        recursive: false,
+        context: { operation: "list", path: "/nonexistent", recursive: false },
       });
 
       expect(result.success).toBe(false);
@@ -223,9 +198,7 @@ describe("fileOpsTool", () => {
       vol.mkdirSync("/emptydir");
 
       const result = await fileOpsTool.execute({
-        operation: "list",
-        path: "/emptydir",
-        recursive: false,
+        context: { operation: "list", path: "/emptydir", recursive: false },
       });
 
       expect(result.success).toBe(true);
@@ -238,8 +211,7 @@ describe("fileOpsTool", () => {
       // This test validates error handling structure
       // In real scenarios, permission errors would be caught
       const result = await fileOpsTool.execute({
-        operation: "read",
-        path: "/nonexistent/path/file.txt",
+        context: { operation: "read", path: "/nonexistent/path/file.txt" },
       });
 
       expect(result.success).toBe(false);

@@ -47,14 +47,17 @@ const outputSchema = z.object({
 });
 
 type FileOpsInput = z.infer<typeof inputSchema>;
+type FileOpsOutput = z.infer<typeof outputSchema>;
 
 export const fileOpsTool = createTool({
   id: "file-ops",
   description: "File operations (read, write, exists, list)",
   inputSchema,
   outputSchema,
-  execute: async (inputData) => {
-    const input = inputData as unknown as FileOpsInput;
+  execute: async (inputData): Promise<FileOpsOutput> => {
+    // Kompatibilität: Mastra-Agent übergibt inputData direkt, manueller Aufruf nutzt { context }
+    const hasContext = inputData && typeof inputData === "object" && "context" in inputData;
+    const input = (hasContext ? (inputData as { context: FileOpsInput }).context : inputData) as FileOpsInput;
     const { operation, path } = input;
 
     try {
