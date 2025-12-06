@@ -57,7 +57,9 @@ export const fileOpsTool = createTool({
   execute: async (inputData): Promise<FileOpsOutput> => {
     // Kompatibilität: Mastra-Agent übergibt inputData direkt, manueller Aufruf nutzt { context }
     const hasContext = inputData && typeof inputData === "object" && "context" in inputData;
-    const input = (hasContext ? (inputData as { context: FileOpsInput }).context : inputData) as FileOpsInput;
+    const input = (
+      hasContext ? (inputData as { context: FileOpsInput }).context : inputData
+    ) as FileOpsInput;
     const { operation, path } = input;
 
     try {

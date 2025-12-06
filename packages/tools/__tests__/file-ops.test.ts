@@ -67,7 +67,12 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        context: { operation: "write", path: "/output.txt", content: "Test content", createDirs: false },
+        context: {
+          operation: "write",
+          path: "/output.txt",
+          content: "Test content",
+          createDirs: false,
+        },
       });
 
       expect(result.success).toBe(true);
@@ -79,7 +84,12 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/": null });
 
       const result = await fileOpsTool.execute({
-        context: { operation: "write", path: "/nested/deep/file.txt", content: "Nested content", createDirs: true },
+        context: {
+          operation: "write",
+          path: "/nested/deep/file.txt",
+          content: "Nested content",
+          createDirs: true,
+        },
       });
 
       expect(result.success).toBe(true);
@@ -90,7 +100,12 @@ describe("fileOpsTool", () => {
       vol.fromJSON({ "/existing.txt": "old content" });
 
       const result = await fileOpsTool.execute({
-        context: { operation: "write", path: "/existing.txt", content: "new content", createDirs: false },
+        context: {
+          operation: "write",
+          path: "/existing.txt",
+          content: "new content",
+          createDirs: false,
+        },
       });
 
       expect(result.success).toBe(true);
