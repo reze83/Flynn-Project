@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Example MCP server configuration for Flynn Python tools (Claude Code)",
+
+  "mcpServers": {
+    "flynn-python": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/Flynn-Project/packages/python",
+        "run",
+        "python",
+        "-m",
+        "server"
+      ]
+    }
+  },
+
+  "_instructions": {
+    "setup": [
+      "1. Add to Claude Code via CLI:",
+      "   claude mcp add flynn-python -- uv --directory /path/to/Flynn-Project/packages/python run python -m server",
+      "",
+      "   Or add to ~/.claude/settings.json or project .mcp.json",
+      "",
+      "2. Replace /path/to/Flynn-Project with actual path",
+      "",
+      "3. Ensure Python environment is set up:",
+      "   cd packages/python",
+      "   uv sync",
+      "",
+      "4. For ML features, install with:",
+      "   uv sync --extra ml"
+    ],
+    "available_tools": [
+      "flynn-data_load_csv    - Load CSV and get basic statistics",
+      "flynn-data_describe    - Statistical description of dataset",
+      "flynn-data_filter      - Filter dataset by conditions",
+      "flynn-data_aggregate   - Group by and aggregate data",
+      "flynn-data_correlate   - Calculate correlation matrix",
+      "flynn-ml_sentiment     - Sentiment analysis (requires ML extra)",
+      "flynn-ml_summarize     - Text summarization (requires ML extra)",
+      "flynn-ml_classify      - Zero-shot classification (requires ML extra)",
+      "flynn-ml_embeddings    - Generate text embeddings (requires ML extra)"
+    ]
+  }
+}

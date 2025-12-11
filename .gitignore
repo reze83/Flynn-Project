@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.uv/
+
+# Flynn data
+.local/
+*.db
+*.db-journal
+
+# Auto-generated files
+STATUS.md
+**/DESIGN.md
+
+# Python caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+.eggs/
+
+# Build tools
+.turbo/
+.cache/
+*.tgz
+
+# Temp files
+*.tmp
+*.temp
+.~*
+memory.db*

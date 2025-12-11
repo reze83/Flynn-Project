@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flynn Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">F</span>
+                <h1>Flynn Analytics</h1>
+            </div>
+            <div class="header-actions">
+                <span class="status" id="connection-status">Connecting...</span>
+                <button id="refresh-btn" class="btn btn-primary">Refresh</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Summary Cards -->
+            <section class="cards-grid">
+                <div class="card">
+                    <div class="card-icon sessions"></div>
+                    <div class="card-content">
+                        <span class="card-label">Total Sessions</span>
+                        <span class="card-value" id="total-sessions">-</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon tokens"></div>
+                    <div class="card-content">
+                        <span class="card-label">Total Tokens</span>
+                        <span class="card-value" id="total-tokens">-</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon cost"></div>
+                    <div class="card-content">
+                        <span class="card-label">Estimated Cost</span>
+                        <span class="card-value" id="total-cost">-</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon avg"></div>
+                    <div class="card-content">
+                        <span class="card-label">Avg Tokens/Session</span>
+                        <span class="card-value" id="avg-tokens">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="charts-grid">
+                <div class="chart-container">
+                    <h2 class="chart-title">Tool Usage (Top 10)</h2>
+                    <canvas id="tool-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h2 class="chart-title">Agent Usage</h2>
+                    <canvas id="agent-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Current Session -->
+            <section class="session-section">
+                <h2 class="section-title">Current Session</h2>
+                <div class="session-details" id="session-details">
+                    <p class="no-session">No active session</p>
+                </div>
+            </section>
+
+            <!-- Tool Stats Table -->
+            <section class="stats-section">
+                <h2 class="section-title">Tool Statistics</h2>
+                <div class="table-container">
+                    <table class="stats-table" id="tool-stats-table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>Count</th>
+                                <th>Avg Duration</th>
+                                <th>Success Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="4" class="no-data">No data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Agent Stats Table -->
+            <section class="stats-section">
+                <h2 class="section-title">Agent Statistics</h2>
+                <div class="table-container">
+                    <table class="stats-table" id="agent-stats-table">
+                        <thead>
+                            <tr>
+                                <th>Agent</th>
+                                <th>Count</th>
+                                <th>Success Rate</th>
+                                <th>Avg Tokens</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="4" class="no-data">No data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Flynn Expert System v1.0.0 | Last updated: <span id="last-updated">-</span></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

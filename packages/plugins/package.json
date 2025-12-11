@@ -1,0 +1,32 @@
+{
+  "name": "@flynn/plugins",
+  "version": "1.0.0",
+  "description": "Flynn Plugin System - Extensible plugin architecture for Flynn",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run --config ./vitest.config.ts",
+    "lint": "biome check src/",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@flynn/core": "workspace:*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "keywords": ["flynn", "plugins", "mcp", "extensibility"],
+  "license": "MIT"
+}

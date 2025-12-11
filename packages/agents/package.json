@@ -1,0 +1,33 @@
+{
+  "name": "@flynn/agents",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "eval": "vitest run --config vitest.eval.config.ts",
+    "bundle": "tsup src/index.ts --format esm,cjs --dts --outDir dist"
+  },
+  "dependencies": {
+    "@flynn/core": "workspace:*",
+    "@huggingface/transformers": "^3.0.0",
+    "@mastra/core": "^0.24.6",
+    "@mastra/libsql": "^0.16.3",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

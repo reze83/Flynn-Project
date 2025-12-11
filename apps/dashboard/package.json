@@ -1,0 +1,12 @@
+{
+  "name": "@flynn/dashboard",
+  "version": "1.0.0",
+  "description": "Flynn Analytics Dashboard - Web-based visualization for Flynn usage metrics",
+  "private": true,
+  "scripts": {
+    "start": "npx serve -p 3001",
+    "dev": "npx serve -p 3001 --cors"
+  },
+  "keywords": ["flynn", "analytics", "dashboard"],
+  "license": "MIT"
+}

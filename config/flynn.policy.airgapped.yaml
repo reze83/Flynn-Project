@@ -1,0 +1,36 @@
+version: "1.0"
+
+permissions:
+  shell:
+    allow:
+      - "git status"
+      - "git show"
+      - "node -v"
+      - "npm -v"
+    deny:
+      - "*"
+
+  paths:
+    whitelist:
+      - "${PROJECT_ROOT}"
+      - "${PROJECT_ROOT}/**"
+    writable:
+      - "${PROJECT_ROOT}"
+      - "${PROJECT_ROOT}/**"
+    readonly:
+      - "/"
+
+  network:
+    allow: []
+    deny:
+      - "*"
+
+agents:
+  max_iterations: 5
+  timeout_seconds: 120
+  max_retries: 1
+
+logging:
+  level: info
+  format: json
+  include_timestamps: true

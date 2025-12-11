@@ -1,0 +1,22 @@
+{
+  "name": "@flynn-plugin/security-scanner",
+  "version": "1.0.0",
+  "description": "Security Scanner Plugin for Flynn",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@flynn/plugins": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": ["flynn", "plugin", "security", "scanner"],
+  "license": "MIT"
+}

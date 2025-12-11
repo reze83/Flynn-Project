@@ -1,0 +1,30 @@
+{
+  "name": "@flynn/analytics",
+  "version": "1.0.0",
+  "description": "Flynn Analytics - Usage tracking and metrics for the Flynn Expert System",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@flynn/core": "workspace:*",
+    "@libsql/client": "^0.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1",
+    "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "@flynn/core": "workspace:*"
+  }
+}

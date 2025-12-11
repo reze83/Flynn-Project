@@ -1,0 +1,15 @@
+{
+  "id": "security-scanner",
+  "name": "Security Scanner Plugin",
+  "version": "1.0.0",
+  "description": "Automated security scanning and vulnerability detection for Flynn",
+  "author": "Flynn Team",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "flynn": {
+    "minVersion": "1.0.0",
+    "agents": ["security-scanner"],
+    "skills": ["owasp-top-10", "dependency-audit"],
+    "workflows": ["security-scan", "vulnerability-fix"]
+  }
+}

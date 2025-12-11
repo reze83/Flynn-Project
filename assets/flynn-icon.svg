@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1117"/>
+      <stop offset="100%" style="stop-color:#161b22"/>
+    </linearGradient>
+    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#79c0ff"/>
+      <stop offset="100%" style="stop-color:#388bfd"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="url(#iconBg)"/>
+
+  <!-- Network visualization -->
+  <g transform="translate(64, 64)">
+    <!-- Connection lines -->
+    <line x1="0" y1="0" x2="-28" y2="-22" stroke="#388bfd" stroke-width="3"/>
+    <line x1="0" y1="0" x2="28" y2="-22" stroke="#388bfd" stroke-width="3"/>
+    <line x1="0" y1="0" x2="-32" y2="10" stroke="#388bfd" stroke-width="3"/>
+    <line x1="0" y1="0" x2="32" y2="10" stroke="#388bfd" stroke-width="3"/>
+    <line x1="0" y1="0" x2="0" y2="30" stroke="#388bfd" stroke-width="3"/>
+
+    <!-- Center node -->
+    <circle cx="0" cy="0" r="18" fill="url(#nodeGrad)"/>
+
+    <!-- Outer agent nodes -->
+    <circle cx="-28" cy="-22" r="9" fill="#388bfd"/>
+    <circle cx="28" cy="-22" r="9" fill="#388bfd"/>
+    <circle cx="-32" cy="10" r="9" fill="#388bfd"/>
+    <circle cx="32" cy="10" r="9" fill="#388bfd"/>
+    <circle cx="0" cy="30" r="9" fill="#388bfd"/>
+
+    <!-- F letter -->
+    <text x="0" y="6" font-family="system-ui, sans-serif" font-size="20" font-weight="bold" fill="#0d1117" text-anchor="middle">F</text>
+  </g>
+</svg>

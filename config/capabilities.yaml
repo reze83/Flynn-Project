@@ -1,0 +1,162 @@
+version: "1.0"
+
+# Agent Capability Registry
+# Defines routing rules and tool access for each agent
+
+agents:
+  installer:
+    description: "Handles installation, setup, and dependency management"
+    triggers:
+      - install
+      - setup
+      - bootstrap
+      - dependency
+      - add package
+      - update dependencies
+    tools:
+      - shell
+      - file-ops
+      - git-ops
+    priority: high
+
+  diagnostic:
+    description: "Diagnoses issues, analyzes errors, troubleshoots problems"
+    triggers:
+      - diagnose
+      - debug
+      - error
+      - why
+      - broken
+      - not working
+      - fix
+      - issue
+    tools:
+      - project-analysis
+      - system-info
+      - shell
+    priority: high
+
+  scaffolder:
+    description: "Generates new projects, creates boilerplate code"
+    triggers:
+      - create
+      - new
+      - scaffold
+      - init
+      - generate project
+      - bootstrap project
+    tools:
+      - file-ops
+      - git-ops
+      - shell
+    priority: medium
+
+  coder:
+    description: "Writes and implements code, adds features"
+    triggers:
+      - implement
+      - code
+      - write
+      - add
+      - function
+      - feature
+      - build
+    tools:
+      - file-ops
+      - project-analysis
+    priority: medium
+
+  refactor:
+    description: "Improves code structure, optimizes, cleans up"
+    triggers:
+      - refactor
+      - improve
+      - clean
+      - optimize
+      - rename
+      - restructure
+    tools:
+      - file-ops
+      - project-analysis
+    priority: medium
+
+  release:
+    description: "Prepares releases, manages versions, publishes packages"
+    triggers:
+      - release
+      - publish
+      - version
+      - changelog
+      - tag
+      - bump
+    tools:
+      - git-ops
+      - file-ops
+      - shell
+    priority: low
+
+  healer:
+    description: "Recovers from failures, retries with different approaches"
+    triggers: []  # Automatic on failure, not user-triggered
+    tools:
+      - shell
+      - file-ops
+      - project-analysis
+      - system-info
+    limits:
+      max_retries: 3
+      cannot_self_invoke: true
+      escalate_after_retries: true
+    priority: critical
+
+  data:
+    description: "Analyzes data, generates statistics, runs ML inference"
+    triggers:
+      - data
+      - csv
+      - statistics
+      - analyze data
+      - dataframe
+      - pandas
+      - ml
+      - machine learning
+    tools:
+      - python-data
+      - python-ml
+    priority: medium
+
+# Routing configuration
+routing:
+  strategy: priority_first
+  min_confidence: 0.6
+  fallback: ask_user
+
+# Tool definitions
+tools:
+  shell:
+    id: flynn-shell
+    description: Safe shell command execution
+
+  file-ops:
+    id: flynn-file-ops
+    description: File read/write/search operations
+
+  git-ops:
+    id: flynn-git-ops
+    description: Git commands (status, commit, push, etc.)
+
+  project-analysis:
+    id: flynn-project-analysis
+    description: Analyze project structure
+
+  system-info:
+    id: flynn-system-info
+    description: Get system information
+
+  python-data:
+    id: flynn-data
+    description: Python data tools (pandas)
+
+  python-ml:
+    id: flynn-ml
+    description: Python ML tools (transformers)
