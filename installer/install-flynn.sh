@@ -84,6 +84,7 @@ NON_INTERACTIVE=false
 OFFLINE=false
 KEEP_CONFIG=false
 WITH_PUPPETEER=true
+WITH_CODEX=true
 VERIFY_DETAILED=true
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -204,7 +205,9 @@ mode_install() {
     print_step "$current_step" "$total_steps" "Codex CLI"
     ((current_step++))
 
-    if ! check_codex_cli; then
+    if [[ "$WITH_CODEX" == false ]]; then
+        print_done "Codex CLI skipped (--without-codex)"
+    elif ! check_codex_cli; then
         install_codex_cli || log_warn "Codex CLI installation failed (optional)"
     else
         print_done "Codex CLI $(codex --version 2>/dev/null | head -1)"
@@ -578,6 +581,7 @@ ${BOLD}INSTALLATION OPTIONS:${NC}
     --minimal          Node.js + pnpm only
     --full             Include Python/ML tools (default)
     --without-puppeteer  Skip Puppeteer/Chrome system dependencies
+    --without-codex    Skip Codex CLI installation
     --offline          Use cached packages
     --non-interactive  No prompts (for CI/CD)
     --dry-run          Show actions without executing
@@ -681,6 +685,9 @@ main() {
                 ;;
             --without-puppeteer)
                 WITH_PUPPETEER=false
+                ;;
+            --without-codex)
+                WITH_CODEX=false
                 ;;
             --verify-basic)
                 VERIFY_DETAILED=false

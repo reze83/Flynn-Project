@@ -171,7 +171,24 @@ Flynn-Project/
 
 ### Codex Integration
 
-Flynn integrates with OpenAI Codex CLI:
+Flynn integrates with OpenAI Codex CLI for hybrid AI workflows.
+
+**Installation:**
+
+The automated installer handles Codex CLI setup:
+```bash
+./install-flynn.sh  # Automatically installs and configures Codex CLI
+
+# Skip Codex CLI installation (optional)
+./install-flynn.sh --without-codex
+```
+
+Manual installation:
+```bash
+npm install -g @openai/codex
+```
+
+**Usage:**
 
 ```javascript
 // Delegate task to Codex with real-time monitoring
@@ -190,6 +207,7 @@ tail -f ~/.flynn/codex-sessions/*.log
 - ✅ Session management
 - ✅ Context handoff
 - ✅ Automatic completion detection
+- ✅ Auto-configured by Flynn installer
 
 ### External MCP Tools
 
@@ -251,6 +269,7 @@ pnpm --filter @flynn/server dev
 - **pnpm 9+** (`npm install -g pnpm`)
 - **Python 3.11+** (optional, for data/ML tools)
 - **Claude Code CLI** installed
+- **OpenAI Codex CLI** (optional, for Codex integration features)
 
 ## Contributing
 
