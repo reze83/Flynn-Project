@@ -41,9 +41,9 @@ Flynn is an **expert system** for Claude Code that provides:
 ### Automated Installation (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/reze83/Flynn-Project/main/install-flynn.sh -o install-flynn.sh
-chmod +x install-flynn.sh
-./install-flynn.sh
+curl -fsSL https://raw.githubusercontent.com/reze83/Flynn-Project/main/install.sh -o install.sh
+chmod +x install.sh
+./install.sh
 ```
 
 The installer handles dependencies, building, Claude Code configuration, and verification.
@@ -177,10 +177,10 @@ Flynn integrates with OpenAI Codex CLI for hybrid AI workflows.
 
 The automated installer handles Codex CLI setup:
 ```bash
-./install-flynn.sh  # Automatically installs and configures Codex CLI
+./install.sh  # Automatically installs and configures Codex CLI
 
 # Skip Codex CLI installation (optional)
-./install-flynn.sh --without-codex
+./install.sh --without-codex
 ```
 
 Manual installation:
