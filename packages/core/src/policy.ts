@@ -236,10 +236,65 @@ export function validateCommand(
   };
 }
 
+interface ResolvedPaths {
+  whitelist: string[];
+  writable: string[];
+  readonly: string[];
+}
+
+/**
+ * Resolve environment variables in all path patterns
+ */
+function resolveAllPaths(policy: PolicyConfig, projectRoot: string): ResolvedPaths {
+  return {
+    whitelist: (policy.permissions.paths.whitelist || []).map((p) =>
+      resolveEnvVars(p, projectRoot),
+    ),
+    writable: policy.permissions.paths.writable.map((p) => resolveEnvVars(p, projectRoot)),
+    readonly: policy.permissions.paths.readonly.map((p) => resolveEnvVars(p, projectRoot)),
+  };
+}
+
+/**
+ * Check if path matches any pattern in the list
+ */
+function pathMatchesAny(filePath: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => minimatch(filePath, pattern));
+}
+
+/**
+ * Validate write operation against path policy
+ */
+function validateWriteOperation(
+  filePath: string,
+  paths: ResolvedPaths,
+): { allowed: boolean; reason?: string } {
+  if (pathMatchesAny(filePath, paths.writable)) {
+    return { allowed: true };
+  }
+  if (pathMatchesAny(filePath, paths.readonly)) {
+    return { allowed: false, reason: `Path is read-only: ${filePath}` };
+  }
+  return { allowed: false, reason: `Path not in writable list: ${filePath}` };
+}
+
+/**
+ * Validate read operation against path policy
+ */
+function validateReadOperation(
+  filePath: string,
+  paths: ResolvedPaths,
+): { allowed: boolean; reason?: string } {
+  const allAccessible = [...paths.writable, ...paths.readonly];
+  if (pathMatchesAny(filePath, allAccessible)) {
+    return { allowed: true };
+  }
+  return { allowed: false, reason: `Path not accessible: ${filePath}` };
+}
+
 /**
  * Validate a file path against policy
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: validation logic with multiple checks
 export function validatePath(
   filePath: string,
   operation: "read" | "write",
@@ -247,61 +302,16 @@ export function validatePath(
 ): { allowed: boolean; reason?: string } {
   const p = policy || loadPolicy();
   const projectRoot = ensureProjectRoot(process.cwd());
-
-  // Resolve environment variables in patterns
-  const whitelistPaths = (p.permissions.paths.whitelist || []).map((pattern) =>
-    resolveEnvVars(pattern, projectRoot),
-  );
-  const writablePaths = p.permissions.paths.writable.map((pattern) =>
-    resolveEnvVars(pattern, projectRoot),
-  );
-  const readonlyPaths = p.permissions.paths.readonly.map((pattern) =>
-    resolveEnvVars(pattern, projectRoot),
-  );
+  const paths = resolveAllPaths(p, projectRoot);
 
   // If whitelist exists, enforce it for all operations
-  if (whitelistPaths.length > 0) {
-    const inWhitelist = whitelistPaths.some((pattern) => minimatch(filePath, pattern));
-    if (!inWhitelist) {
-      return { allowed: false, reason: `Path not in whitelist: ${filePath}` };
-    }
+  if (paths.whitelist.length > 0 && !pathMatchesAny(filePath, paths.whitelist)) {
+    return { allowed: false, reason: `Path not in whitelist: ${filePath}` };
   }
 
-  if (operation === "write") {
-    // Check if path matches any writable pattern
-    for (const pattern of writablePaths) {
-      if (minimatch(filePath, pattern)) {
-        return { allowed: true };
-      }
-    }
-
-    // Check if path matches readonly (not writable)
-    for (const pattern of readonlyPaths) {
-      if (minimatch(filePath, pattern)) {
-        return {
-          allowed: false,
-          reason: `Path is read-only: ${filePath}`,
-        };
-      }
-    }
-
-    return {
-      allowed: false,
-      reason: `Path not in writable list: ${filePath}`,
-    };
-  }
-
-  // Read operation - allowed in both writable and readonly paths
-  for (const pattern of [...writablePaths, ...readonlyPaths]) {
-    if (minimatch(filePath, pattern)) {
-      return { allowed: true };
-    }
-  }
-
-  return {
-    allowed: false,
-    reason: `Path not accessible: ${filePath}`,
-  };
+  return operation === "write"
+    ? validateWriteOperation(filePath, paths)
+    : validateReadOperation(filePath, paths);
 }
 
 /**
@@ -364,7 +374,7 @@ export function validateFunctionUsage(code: string): { allowed: boolean; reason?
     "child_process.exec(",
     "child_process.execSync(",
     "require('child_process').exec(",
-    "require(\"child_process\").exec(",
+    'require("child_process").exec(',
     "vm.runInNewContext(",
     "vm.runInContext(",
     "setTimeout(",
@@ -375,11 +385,187 @@ export function validateFunctionUsage(code: string): { allowed: boolean; reason?
     if (code.includes(keyword)) {
       return {
         allowed: false,
-        reason: `Use of dangerous function detected: ${keyword.replace(/\\(/, '')}`,
+        reason: `Use of dangerous function detected: ${keyword.replace(/\(/, "")}`,
       };
     }
   }
   return { allowed: true };
+}
+
+// ============================================================================
+// AST Security Validation Helper Functions
+// Pattern: Extract Method (Refactoring.Guru)
+// Purpose: Reduce cognitive complexity of visit function from 30 to ~10
+// ============================================================================
+
+/**
+ * Result of a dangerous pattern check
+ */
+interface DangerousPatternResult {
+  found: boolean;
+  functionName?: string;
+}
+
+/**
+ * Check if expression is an eval pattern
+ */
+function isEvalPattern(exprText: string): boolean {
+  return (
+    exprText === "eval" ||
+    exprText.includes("eval.call") ||
+    exprText.includes("eval.apply") ||
+    exprText.includes("window.eval") ||
+    exprText.includes("globalThis.eval") ||
+    /^\(.*eval.*\)$/.test(exprText)
+  );
+}
+
+/**
+ * Check if expression is a child_process pattern
+ */
+function isChildProcessPattern(exprText: string): boolean {
+  return (
+    exprText.includes("child_process.exec") ||
+    exprText.includes("child_process.spawn") ||
+    exprText.includes("child_process.fork") ||
+    exprText.includes("cp.exec") ||
+    exprText.includes("cp.spawn")
+  );
+}
+
+/**
+ * Check if expression is a vm module pattern
+ */
+function isVmModulePattern(exprText: string): boolean {
+  return (
+    exprText.includes("vm.runInNewContext") ||
+    exprText.includes("vm.runInContext") ||
+    exprText.includes("vm.runInThisContext")
+  );
+}
+
+/**
+ * Check call expression for dangerous patterns
+ */
+function checkCallExpressionForDanger(
+  ts: typeof import("typescript"),
+  node: import("typescript").CallExpression,
+  sourceFile: import("typescript").SourceFile,
+): DangerousPatternResult {
+  const exprText = node.expression.getText(sourceFile);
+
+  if (isEvalPattern(exprText)) {
+    return { found: true, functionName: `eval (${exprText})` };
+  }
+
+  if (isChildProcessPattern(exprText)) {
+    return { found: true, functionName: `child_process (${exprText})` };
+  }
+
+  if (isVmModulePattern(exprText)) {
+    return { found: true, functionName: `vm module (${exprText})` };
+  }
+
+  // Check setTimeout/setInterval with string argument
+  if ((exprText === "setTimeout" || exprText === "setInterval") && node.arguments.length > 0) {
+    const firstArg = node.arguments[0];
+    if (firstArg && (ts.isStringLiteral(firstArg) || ts.isTemplateLiteral(firstArg))) {
+      return { found: true, functionName: `${exprText} with string argument` };
+    }
+  }
+
+  return { found: false };
+}
+
+/**
+ * Check new expression for dangerous patterns
+ */
+function checkNewExpressionForDanger(
+  node: import("typescript").NewExpression,
+  sourceFile: import("typescript").SourceFile,
+): DangerousPatternResult {
+  const exprText = node.expression.getText(sourceFile);
+  if (exprText === "Function") {
+    return { found: true, functionName: "Function constructor" };
+  }
+  return { found: false };
+}
+
+/**
+ * AST-based validation of dangerous function usage.
+ * This is more robust than substring matching as it properly parses the code structure.
+ *
+ * Detects:
+ * - Direct eval() calls
+ * - Indirect eval: eval.call(), window.eval(), (1, eval)()
+ * - child_process methods: exec, execSync, spawn, fork
+ * - vm module: runInNewContext, runInContext, runInThisContext
+ * - Dynamic code execution: Function constructor, setTimeout/setInterval with strings
+ *
+ * Based on TypeScript AST analysis best practices.
+ * Source: https://krython.com/tutorial/typescript/code-security-review-static-analysis
+ *
+ * REFACTORED: Complexity reduced from 30 to ~10 using Extract Method pattern
+ * Source: https://refactoring.guru/extract-method
+ */
+export function validateFunctionUsageAST(code: string): { allowed: boolean; reason?: string } {
+  // Import TypeScript compiler API dynamically to avoid build issues
+  let ts: typeof import("typescript");
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    ts = require("typescript");
+  } catch {
+    // Fallback to legacy substring matching if TypeScript is not available
+    return validateFunctionUsage(code);
+  }
+
+  try {
+    const sourceFile = ts.createSourceFile("temp.ts", code, ts.ScriptTarget.Latest, true);
+
+    let dangerousFunction: string | null = null;
+    let dangerousLine = 0;
+
+    const visit = (node: import("typescript").Node): void => {
+      // Check call expressions using extracted helper
+      if (ts.isCallExpression(node)) {
+        const result = checkCallExpressionForDanger(ts, node, sourceFile);
+        if (result.found && result.functionName) {
+          dangerousFunction = result.functionName;
+          const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+          dangerousLine = line + 1;
+        }
+      }
+
+      // Check new expressions using extracted helper
+      if (ts.isNewExpression(node)) {
+        const result = checkNewExpressionForDanger(node, sourceFile);
+        if (result.found && result.functionName) {
+          dangerousFunction = result.functionName;
+          const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+          dangerousLine = line + 1;
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(sourceFile);
+
+    if (dangerousFunction) {
+      return {
+        allowed: false,
+        reason: `Use of dangerous function detected: ${dangerousFunction} at line ${dangerousLine}`,
+      };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    // If AST parsing fails, the code might be malicious or malformed
+    return {
+      allowed: false,
+      reason: `Code parsing failed - potentially malicious or invalid syntax: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
 }
 
 /**

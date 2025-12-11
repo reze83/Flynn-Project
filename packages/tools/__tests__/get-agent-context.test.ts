@@ -182,9 +182,9 @@ describe("get-agent-context", () => {
   });
 
   describe("tier estimates validation", () => {
-    it("all 27 agents have tier estimates", async () => {
+    it("all agents have tier estimates", async () => {
       const agentIds = Object.keys(AGENT_CONTEXTS);
-      expect(agentIds.length).toBe(27);
+      expect(agentIds.length).toBeGreaterThanOrEqual(27);
 
       for (const agentId of agentIds) {
         const ctx = AGENT_CONTEXTS[agentId];

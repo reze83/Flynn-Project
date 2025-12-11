@@ -16,7 +16,14 @@ const execOptions: ExecSyncOptions = {
 const inputSchema = z.object({
   operation: z.enum(["status", "log", "diff", "branch"]).describe("Git operation to perform"),
   path: z.string().default(".").describe("Repository path"),
-  count: z.number().optional().default(10).describe("Number of commits to show (for log)"),
+  count: z
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .optional()
+    .default(10)
+    .describe("Number of commits to show (for log)"),
   staged: z.boolean().optional().default(false).describe("Show staged changes only (for diff)"),
 });
 
@@ -49,9 +56,12 @@ export const gitOpsTool = createTool({
         case "status":
           command = "git status --porcelain";
           break;
-        case "log":
-          command = `git log --oneline -n ${count}`;
+        case "log": {
+          // SECURITY: Validate count is a safe integer to prevent command injection
+          const safeCount = Math.max(1, Math.min(1000, Math.floor(Number(count) || 10)));
+          command = `git log --oneline -n ${safeCount}`;
           break;
+        }
         case "diff":
           command = staged ? "git diff --cached" : "git diff";
           break;

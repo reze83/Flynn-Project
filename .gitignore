@@ -10,6 +10,7 @@ dist/
 .env
 .env.local
 .env.*.local
+.env.mcp
 
 # IDE
 .idea/
@@ -64,3 +65,16 @@ STATUS.md
 *.temp
 .~*
 memory.db*
+
+# Flynn runtime
+.flynn_cache/
+.serena/
+.ai-handoff.json
+
+# Build artifacts in source
+packages/*/src/*.js
+packages/*/src/*.d.ts
+packages/*/src/*.map
+apps/*/src/*.js
+apps/*/src/*.d.ts
+apps/*/src/*.map

@@ -1,6 +1,6 @@
 # Flynn Workflows Reference
 
-Flynn Workflows orchestrate multiple agents for complex, multi-step tasks. This document describes all 22 available workflows.
+Flynn Workflows orchestrate multiple agents for complex, multi-step tasks. This document describes all 23 available workflows.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Flynn Workflows orchestrate multiple agents for complex, multi-step tasks. This 
 | **Release & Docs** | secure-release, documentation-suite | 2 |
 | **Codex Integration** | codex-delegation, hybrid-implementation, codex-specialist | 3 |
 
-**Total: 22 Workflows**
+**Total: 23 Workflows**
 
 ---
 

@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ADRs** — Architecture Decision Records for security, performance, and agent architecture
 - **CONTRIBUTING.md** — Comprehensive contributor guide
 - **TROUBLESHOOTING.md** — Common issues and solutions
+- **Installer Error Handler** — Enhanced error handling in `install-flynn.sh` with:
+  - Stack trace display in debug mode (`DEBUG=true`)
+  - Command location tracking (file:line)
+  - Exit code reporting
+  - Automatic rollback on installation failures
+- **Installer Signal Handlers** — Graceful interrupt handling (SIGINT/SIGTERM):
+  - Cleanup of spinner processes
+  - Optional rollback prompt in interactive mode
+  - Proper signal logging
 
 ### Security
 - **Shell Hardening** — Removed `allowUnsafe` bypass, expanded blocked patterns from 9 to 22
@@ -46,11 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Sequential Thinking Server Name** — Fixed MCP registry server name from "sequential-thinking" to "sequentialthinking-tools"
+- **Installer log_action Exit Behavior** — Fixed `lib/common.sh:log_action()` where `[[ ... ]] && echo` pattern caused premature exit with `set -e`
+- **Installer Arithmetic Expansion** — Fixed `lib/verify.sh` where `((errors++))` returned exit code 1 when errors=0, causing false failures
+- **Installer Clone Reliability** — Improved `lib/installers.sh:clone_repository()` with retry logic and better error handling
 
 ### Changed
 - **Directory Recursion Limit** — MAX_DEPTH=10 for file listing operations
 - **Production Build Config** — New `tsconfig.prod.json` without source maps
 - **Documentation Requirement** — Optimization agents (refactor, performance, reviewer, security, coder) now require official documentation before making suggestions
+
+### Improved
+- **Installer Array Processing** — Safe null-delimited array processing in `lib/rollback.sh` using `find -print0` and `read -d ''` to handle filenames with spaces
 
 ## [1.0.0] - 2025-12-07
 

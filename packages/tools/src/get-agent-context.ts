@@ -9,38 +9,8 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { AGENT_CONTEXTS, getAgentContextWithConstraints } from "./agent-contexts.js";
-import { type McpToolCategory, mcpRegistry } from "./mcp-registry.js";
-
-/**
- * Agent to MCP category mapping
- * Maps agent IDs to relevant external MCP tool categories
- */
-const AGENT_MCP_CATEGORIES: Record<string, McpToolCategory[]> = {
-  // Core agents
-  coder: ["code-analysis", "documentation"],
-  diagnostic: ["code-analysis", "search", "thinking"], // Added thinking for complex debugging
-  security: ["code-analysis", "search", "research"],
-  reviewer: ["code-analysis", "thinking"], // Added thinking for thorough review
-  performance: ["code-analysis", "thinking"], // Added thinking for analysis
-  data: ["research", "search", "thinking"], // Added thinking for data analysis
-  healer: ["search", "thinking"], // Added thinking for recovery planning
-
-  // Architecture agents
-  "system-architect": ["documentation", "research", "thinking"], // Added thinking for architecture decisions
-  "database-architect": ["documentation", "research", "thinking"], // Added thinking for schema design
-  "frontend-architect": ["documentation", "search"],
-  "api-designer": ["documentation", "search", "thinking"], // Added thinking for API design
-
-  // Operations agents
-  "devops-engineer": ["documentation", "search"],
-  "incident-responder": ["search", "research", "thinking"], // Added thinking for incident analysis
-
-  // Domain agents
-  "documentation-architect": ["documentation", "search", "research"],
-  "ml-engineer": ["documentation", "research", "search", "thinking"], // Added thinking for ML decisions
-  "test-architect": ["documentation", "code-analysis", "thinking"], // Added thinking for test strategy
-  "migration-specialist": ["documentation", "search", "thinking"], // Added for migration planning
-};
+import { AGENT_MCP_CATEGORIES, getRecommendedMcpTools } from "./agents/mcp-mappings.js";
+import { mcpRegistry } from "./mcp-registry.js";
 
 const inputSchema = z.object({
   task: z.string().describe("Task description to get context for"),
@@ -96,29 +66,40 @@ const outputSchema = z.object({
 /**
  * Get external tool recommendations for an agent
  */
+/**
+ * Get external tool recommendations for an agent
+ * Combines category-based dynamic discovery with direct recommendations
+ */
 function getExternalToolRecommendations(agentId: string): {
   recommended: string[];
   categories: string[];
   hint?: string;
 } {
+  // Get direct MCP tool recommendations from centralized mapping
+  const directTools = getRecommendedMcpTools(agentId);
+
+  // Get category-based recommendations from registry
   const categories = AGENT_MCP_CATEGORIES[agentId] || [];
-  const recommended: string[] = [];
+  const categoryTools: string[] = [];
 
   for (const category of categories) {
     const tools = mcpRegistry.getToolsByCategory(category);
     for (const tool of tools) {
-      if (tool.server !== "flynn" && !recommended.includes(tool.id)) {
-        recommended.push(tool.id);
+      if (tool.server !== "flynn" && !categoryTools.includes(tool.id)) {
+        categoryTools.push(tool.id);
       }
     }
   }
 
-  // Limit to top 10 recommendations
-  const topRecommended = recommended.slice(0, 10);
+  // Combine direct tools and category tools (direct tools take precedence)
+  const allTools = [...new Set([...directTools, ...categoryTools])];
+
+  // Limit to top 15 recommendations
+  const topRecommended = allTools.slice(0, 15);
 
   let hint: string | undefined;
   if (topRecommended.length > 0) {
-    hint = "External MCP tools available for this task. Use them directly when needed.";
+    hint = `${topRecommended.length} external MCP tools available for this agent. Use them directly when needed.`;
   }
 
   return {

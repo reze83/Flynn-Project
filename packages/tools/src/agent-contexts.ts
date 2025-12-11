@@ -34,6 +34,7 @@ export {
   security,
   reviewer,
   performance,
+  qaTester,
   // Individual architecture agents
   systemArchitect,
   databaseArchitect,

@@ -324,9 +324,9 @@ function updateToolStatsTable(data) {
     .map(
       (tool) => `
         <tr>
-            <td><code>${tool.toolName}</code></td>
+            <td><code>${escapeHtml(tool.toolName)}</code></td>
             <td>${formatNumber(tool.count)}</td>
-            <td>${tool.avgDuration}ms</td>
+            <td>${escapeHtml(tool.avgDuration)}ms</td>
             <td class="${getSuccessRateClass(tool.successRate)}">${(tool.successRate * 100).toFixed(0)}%</td>
         </tr>
     `,
@@ -349,7 +349,7 @@ function updateAgentStatsTable(data) {
     .map(
       (agent) => `
         <tr>
-            <td><code>${agent.agentId}</code></td>
+            <td><code>${escapeHtml(agent.agentId)}</code></td>
             <td>${formatNumber(agent.count)}</td>
             <td class="${getSuccessRateClass(agent.successRate)}">${(agent.successRate * 100).toFixed(0)}%</td>
             <td>${formatNumber(agent.avgTokens)}</td>
@@ -375,22 +375,28 @@ function updateSessionDetails(data) {
     ? "Ended"
     : formatDuration(new Date() - new Date(session.startedAt));
 
+  // Sanitize all user-controllable data to prevent XSS
+  const safeSessionId = escapeHtml(session.sessionId);
+  const safeDuration = escapeHtml(duration);
+  const safeAgentsUsed = session.agentsUsed.map(escapeHtml).join(", ") || "None";
+  const safeWorkflows = session.workflowsExecuted.map(escapeHtml).join(", ") || "None";
+
   container.innerHTML = `
         <div class="session-item">
             <div class="session-item-label">Session ID</div>
-            <div class="session-item-value"><code>${session.sessionId}</code></div>
+            <div class="session-item-value"><code>${safeSessionId}</code></div>
         </div>
         <div class="session-item">
             <div class="session-item-label">Duration</div>
-            <div class="session-item-value">${duration}</div>
+            <div class="session-item-value">${safeDuration}</div>
         </div>
         <div class="session-item">
             <div class="session-item-label">Messages</div>
-            <div class="session-item-value">${session.messageCount}</div>
+            <div class="session-item-value">${escapeHtml(session.messageCount)}</div>
         </div>
         <div class="session-item">
             <div class="session-item-label">Tool Calls</div>
-            <div class="session-item-value">${session.toolCallCount}</div>
+            <div class="session-item-value">${escapeHtml(session.toolCallCount)}</div>
         </div>
         <div class="session-item">
             <div class="session-item-label">Tokens</div>
@@ -402,11 +408,11 @@ function updateSessionDetails(data) {
         </div>
         <div class="session-item">
             <div class="session-item-label">Agents Used</div>
-            <div class="session-item-value">${session.agentsUsed.join(", ") || "None"}</div>
+            <div class="session-item-value">${safeAgentsUsed}</div>
         </div>
         <div class="session-item">
             <div class="session-item-label">Workflows</div>
-            <div class="session-item-value">${session.workflowsExecuted.join(", ") || "None"}</div>
+            <div class="session-item-value">${safeWorkflows}</div>
         </div>
     `;
 }
@@ -447,6 +453,22 @@ function startAutoRefresh() {
 }
 
 // Utility functions
+
+/**
+ * Escape HTML special characters to prevent XSS
+ * Source: OWASP XSS Prevention Cheat Sheet
+ * https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+ */
+function escapeHtml(unsafe) {
+  if (typeof unsafe !== "string") return String(unsafe);
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatNumber(num) {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;

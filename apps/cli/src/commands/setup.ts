@@ -9,11 +9,11 @@
  * library【434351357465319†L528-L557】.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import prompts from "prompts";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import { join } from "node:path";
+import chalk from "chalk";
+import { Command } from "commander";
+import prompts from "prompts";
 
 /**
  * Write configuration to a `.flynnrc.json` file. Existing keys will be
@@ -43,9 +43,9 @@ export const setupCommand = new Command("setup")
   .description("Interactively configure Flynn (parallel mode, threshold, etc.)")
   .action(async () => {
     console.log(chalk.cyan("\nFlynn Setup Wizard\n"));
-    const questions = [
+    const questions: prompts.PromptObject[] = [
       {
-        type: "select",
+        type: "select" as const,
         name: "mode",
         message: "Select the default orchestration mode",
         choices: [
@@ -56,7 +56,7 @@ export const setupCommand = new Command("setup")
         initial: 0,
       },
       {
-        type: "number",
+        type: "number" as const,
         name: "threshold",
         message: "Minimum number of independent steps to trigger parallel execution",
         initial: 2,
@@ -76,8 +76,10 @@ export const setupCommand = new Command("setup")
       FLYNN_PARALLEL_THRESHOLD: responses.threshold,
     });
 
-    console.log(chalk.blue(
-      `\nConfiguration complete. You can override these defaults by setting the ` +
-      `FLYNN_PARALLEL_MODE and FLYNN_PARALLEL_THRESHOLD environment variables.\n`,
-    ));
+    console.log(
+      chalk.blue(
+        "\nConfiguration complete. You can override these defaults by setting the " +
+          "FLYNN_PARALLEL_MODE and FLYNN_PARALLEL_THRESHOLD environment variables.\n",
+      ),
+    );
   });

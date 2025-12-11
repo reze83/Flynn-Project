@@ -5,8 +5,11 @@
  * enabling intelligent tool recommendations in agent contexts and workflows.
  */
 
+import { createLogger } from "@flynn/core";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+
+const logger = createLogger("mcp-registry");
 
 /**
  * MCP Tool Categories - Maps tool capabilities to categories
@@ -15,12 +18,22 @@ export type McpToolCategory =
   | "search" // Web search, code search
   | "research" // Deep research, analysis
   | "code-analysis" // Symbol navigation, code understanding
+  | "code-editing" // Code editing and refactoring
   | "documentation" // Library docs, API reference
   | "memory" // Persistent memory, preferences
   | "thinking" // Structured reasoning
   | "file-ops" // File operations
   | "shell" // Command execution
   | "git" // Version control
+  | "docker" // Container management
+  | "github-repo" // GitHub repository operations
+  | "github-issues" // GitHub issues and comments
+  | "github-pr" // GitHub PRs and releases
+  | "puppeteer" // Browser automation
+  | "flynn-orchestration" // Flynn orchestration and workflows
+  | "flynn-meta" // Flynn meta operations
+  | "serena-meta" // Serena project management
+  | "codex-integration" // Codex CLI delegation and handoff
   | "unknown";
 
 /**
@@ -47,15 +60,104 @@ export interface McpServer {
  * Tool patterns for auto-categorization
  */
 const CATEGORY_PATTERNS: Record<McpToolCategory, RegExp[]> = {
+  // Specific patterns first (to avoid false matches)
+  docker: [/docker/i, /container/i, /image/i],
+  puppeteer: [
+    /puppeteer/i,
+    /navigate/i,
+    /screenshot/i,
+    /browser/i,
+    /click/i,
+    /fill/i,
+    /hover/i,
+    /evaluate/i,
+  ],
+  git: [
+    /git/i,
+    /commit/i,
+    /branch/i,
+    /diff/i,
+    /checkout/i,
+    /stash/i,
+    /tag/i,
+    /remote/i,
+    /rebase/i,
+    /cherry/i,
+    /worktree/i,
+  ],
+  "github-repo": [/repository/i, /fork/i, /create.*branch/i, /get.*file/i, /push.*files/i],
+  "github-issues": [/issue/i, /comment/i, /update.*issue/i],
+  "github-pr": [/pull.*request/i, /merge/i, /\bpr\b/i, /review/i],
+  "flynn-orchestration": [/orchestrate/i, /workflow/i, /route/i, /agent.*context/i],
+  "flynn-meta": [
+    /analyze.*project/i,
+    /system.*info/i,
+    /health/i,
+    /analytics/i,
+    /skill/i,
+    /hooks/i,
+    /profil/i,
+    /measure/i,
+    /benchmark/i,
+  ],
+  "serena-meta": [
+    /activate/i,
+    /switch.*mode/i,
+    /config/i,
+    /onboarding/i,
+    /instructions/i,
+    /prepare/i,
+  ],
+  "codex-integration": [/codex/i, /delegate/i, /handoff/i, /gpt.*5/i],
+
+  // General patterns (after specific ones)
+  // Enhanced patterns for better underscore handling
   search: [/search/i, /find/i, /query/i, /lookup/i],
   research: [/research/i, /deep/i, /analyze/i, /crawl/i],
-  "code-analysis": [/symbol/i, /reference/i, /definition/i, /overview/i, /pattern/i],
-  documentation: [/doc/i, /library/i, /api/i, /resolve.*id/i],
-  memory: [/memory/i, /remember/i, /preference/i, /store/i],
+  "code-analysis": [
+    /symbol/i,
+    /reference/i,
+    /definition/i,
+    /overview/i,
+    /pattern/i,
+    /context/i,
+    /code.*context/i,
+  ],
+  "code-editing": [/replace/i, /insert/i, /rename/i, /edit/i, /refactor/i],
+  documentation: [/\bdocs?\b/i, /library/i, /\bapi\b/i, /resolve.*id/i, /documentation/i],
+
+  // Enhanced memory patterns - now catches add_memory, write_memory, delete_memory, update_memory
+  memory: [
+    /\bmemory\b/i,
+    /\bmemories\b/i,
+    /remember/i,
+    /preference/i,
+    /store/i,
+    /entities/i,
+    /get.*memor/i,
+    /list.*memor/i,
+    /add.*memor/i, // NEW: catches add_memory
+    /write.*memor/i, // NEW: catches write_memory
+    /delete.*memor/i, // NEW: catches delete_memory
+    /update.*memor/i, // NEW: catches update_memory
+  ],
+
   thinking: [/think/i, /reason/i, /sequential/i, /chain/i],
-  "file-ops": [/file/i, /read/i, /write/i, /create.*file/i, /list.*dir/i],
+
+  // Enhanced file-ops patterns - now catches read_file, write_file
+  "file-ops": [
+    /\bfile/i,
+    /\bread\b/i,
+    /\bwrite\b/i,
+    /create.*file/i,
+    /list.*dir/i,
+    /move/i,
+    /directory/i,
+    /read.*file/i, // NEW: catches read_file
+    /write.*file/i, // NEW: catches write_file
+  ],
+
   shell: [/shell/i, /command/i, /exec/i, /bash/i],
-  git: [/git/i, /commit/i, /branch/i, /diff/i],
   unknown: [],
 };
 
@@ -98,6 +200,11 @@ class McpRegistry {
           name,
           category: this.categorize(name),
         };
+
+        // Log warning for uncategorized tools
+        if (tool.category === "unknown") {
+          logger.warn({ toolId }, "Tool could not be categorized");
+        }
 
         this.addTool(server, tool);
       }
@@ -176,12 +283,22 @@ class McpRegistry {
       search: ["search", "find", "look up", "google"],
       research: ["research", "investigate", "deep dive", "analyze"],
       "code-analysis": ["code", "symbol", "reference", "definition", "function", "class"],
+      "code-editing": ["edit", "refactor", "replace", "insert", "rename"],
       documentation: ["docs", "documentation", "api", "library", "how to use"],
       memory: ["remember", "save", "store", "preference", "recall"],
       thinking: ["think", "reason", "step by step", "plan", "complex"],
-      "file-ops": ["file", "read", "write", "create"],
+      "file-ops": ["file", "read", "write", "create", "directory"],
       shell: ["run", "execute", "command", "terminal"],
-      git: ["git", "commit", "branch", "version"],
+      git: ["git", "commit", "branch", "version", "stash", "tag"],
+      docker: ["docker", "container", "image"],
+      "github-repo": ["repository", "fork", "clone"],
+      "github-issues": ["issue", "bug", "ticket"],
+      "github-pr": ["pull request", "pr", "merge", "review"],
+      puppeteer: ["browser", "screenshot", "navigate", "test ui"],
+      "flynn-orchestration": ["orchestrate", "workflow", "agent", "route"],
+      "flynn-meta": ["analyze", "health", "skill", "analytics", "profile", "measure"],
+      "serena-meta": ["activate", "configure", "onboarding"],
+      "codex-integration": ["codex", "delegate", "gpt-5", "handoff", "openai"],
       unknown: [],
     };
 
@@ -271,12 +388,22 @@ const inputSchema = z.object({
       "search",
       "research",
       "code-analysis",
+      "code-editing",
       "documentation",
       "memory",
       "thinking",
       "file-ops",
       "shell",
       "git",
+      "docker",
+      "github-repo",
+      "github-issues",
+      "github-pr",
+      "puppeteer",
+      "flynn-orchestration",
+      "flynn-meta",
+      "serena-meta",
+      "codex-integration",
       "all",
     ])
     .optional()

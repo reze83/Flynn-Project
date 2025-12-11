@@ -11,14 +11,49 @@
  * simulates work with a small delay.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import prompts from "prompts";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import { join } from "node:path";
+import chalk from "chalk";
+import { Command } from "commander";
+import prompts from "prompts";
 
-import { orchestrateTool } from "@flynn/tools/src/orchestrate.js";
-import { runWorkflow } from "@flynn/tools/src/workflow-runner.js";
+import { orchestrateTool } from "@flynn/tools";
+
+interface PlannedAgent {
+  id: string;
+  role: string;
+  subtask: string;
+  instructions: string;
+}
+
+// Simple workflow runner for CLI demonstration
+async function runWorkflowSteps(
+  agents: PlannedAgent[],
+  options: { parallel?: boolean; delay?: number },
+): Promise<string[]> {
+  const { parallel = false, delay = 100 } = options;
+  const results: string[] = [];
+
+  if (parallel) {
+    await Promise.all(
+      agents.map(async (agent) => {
+        console.log(`[${agent.id}] Running...`);
+        await new Promise((r) => setTimeout(r, delay));
+        console.log(`[${agent.id}] Done`);
+        results.push(agent.id);
+      }),
+    );
+  } else {
+    for (const agent of agents) {
+      console.log(`[${agent.id}] Running...`);
+      await new Promise((r) => setTimeout(r, delay));
+      console.log(`[${agent.id}] Done`);
+      results.push(agent.id);
+    }
+  }
+
+  return results;
+}
 
 // Helper to load persisted configuration from .flynnrc.json
 async function loadRc(): Promise<Record<string, unknown>> {
@@ -68,45 +103,41 @@ export const runCommand = new Command("run")
       }
     }
     // Plan the workflow using the orchestrate tool
-    const plan = await orchestrateTool.execute({ task, workflow });
+    const plan = await (
+      orchestrateTool as {
+        execute: (args: unknown) => Promise<{
+          template: string;
+          agents: Array<{ id: string; role: string; subtask: string }>;
+          suggestedFlow: string;
+        }>;
+      }
+    ).execute({
+      context: {
+        task: task || "",
+        workflow,
+        mode: "auto",
+        parallel_threshold: 2,
+        auto_optimize: true,
+      },
+    });
     console.log(chalk.green(`Planned template: ${plan.template}`));
     console.log(chalk.cyan("Agents:"));
-    plan.agents.forEach((a: any) => {
+    for (const a of plan.agents) {
       console.log(`  - ${a.id} (${a.role}): ${a.subtask}`);
-    });
+    }
     console.log(chalk.cyan(`Suggested flow: ${plan.suggestedFlow}`));
     // If execution is requested, run the workflow steps
     if (opts.execute) {
       const rc = await loadRc();
       const envMode = process.env.FLYNN_PARALLEL_MODE;
-      const envThresh = process.env.FLYNN_PARALLEL_THRESHOLD;
       const defaultMode: string = (rc.FLYNN_PARALLEL_MODE as string) || plan.suggestedFlow;
-      const defaultThreshold: number = Number(rc.FLYNN_PARALLEL_THRESHOLD) || 2;
       const mode = (envMode as string) || defaultMode;
-      const threshold = envThresh ? Number(envThresh) : defaultThreshold;
-      console.log(
-        chalk.blue(
-          `Executing workflow in ${mode} mode (threshold ${threshold})...`,
-        ),
-      );
-      // Use runWorkflow to execute tasks; for demonstration, we simulate agent execution
-      const total = plan.agents.length;
-      let index = 0;
-      const results = await runWorkflow(
-        plan.agents,
-        mode as any,
-        threshold,
-        async (step: any) => {
-          index++;
-          console.log(
-            chalk.yellow(`→ [${index}/${total}] ${step.id}: ${step.instructions}`),
-          );
-          // Simulate asynchronous work; in a real implementation, this would call the agent
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          console.log(chalk.green(`✓ Completed ${step.id}`));
-          return step.id;
-        },
-      );
+      console.log(chalk.blue(`Executing workflow in ${mode} mode...`));
+      // Use runWorkflowSteps to execute tasks; for demonstration, we simulate agent execution
+      const results = await runWorkflowSteps(plan.agents as PlannedAgent[], {
+        parallel: mode === "parallel",
+        delay: 100,
+      });
       console.log(chalk.green(`Execution finished: ${results.length} steps processed`));
     }
   });

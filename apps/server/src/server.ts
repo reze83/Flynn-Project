@@ -34,64 +34,139 @@ import {
   taskRouterTool,
 } from "@flynn/tools";
 import { MCPServer } from "@mastra/mcp";
+import { z } from "zod";
+
+// Zod schemas for safe JSON parsing
+const FlynnConfigSchema = z.object({
+  tools: z.array(z.string()).optional(),
+});
+
+const ClaudeSettingsSchema = z.object({
+  permissions: z
+    .object({
+      allow: z.array(z.string()).optional(),
+    })
+    .optional(),
+});
 
 const logger = createLogger("server");
 
 /**
+ * Load MCP tools from environment variable
+ */
+function loadToolsFromEnv(): string[] {
+  const envTools = process.env.FLYNN_MCP_TOOLS;
+  if (envTools) {
+    const tools = envTools.split(",").map((t) => t.trim());
+    logger.info({ count: tools.length }, "Loaded MCP tools from environment");
+    return tools;
+  }
+  return [];
+}
+
+/**
+ * Load MCP tools from Flynn config file
+ */
+function loadToolsFromFlynnConfig(): string[] {
+  const flynnConfigPath = join(homedir(), ".flynn", "mcp-tools.json");
+  if (!existsSync(flynnConfigPath)) return [];
+
+  try {
+    const content = readFileSync(flynnConfigPath, "utf-8");
+    const result = FlynnConfigSchema.safeParse(JSON.parse(content));
+
+    if (!result.success) {
+      logger.warn({ error: result.error }, "Invalid Flynn config schema");
+      return [];
+    }
+
+    if (result.data.tools && Array.isArray(result.data.tools)) {
+      logger.info({ count: result.data.tools.length }, "Loaded MCP tools from Flynn config");
+      return result.data.tools;
+    }
+  } catch (error) {
+    logger.warn({ error }, "Failed to parse Flynn MCP tools config");
+  }
+  return [];
+}
+
+/**
+ * Load MCP tools from Claude settings
+ */
+function loadToolsFromClaudeSettings(): string[] {
+  const claudeSettingsPath = join(homedir(), ".claude", "settings.json");
+  if (!existsSync(claudeSettingsPath)) return [];
+
+  try {
+    const content = readFileSync(claudeSettingsPath, "utf-8");
+    const result = ClaudeSettingsSchema.safeParse(JSON.parse(content));
+
+    if (!result.success) {
+      logger.warn({ error: result.error }, "Invalid Claude settings schema");
+      return [];
+    }
+
+    const allowList = result.data.permissions?.allow || [];
+    const tools = allowList.filter((t) => t.startsWith("mcp__"));
+    if (tools.length > 0) {
+      logger.info({ count: tools.length }, "Loaded MCP tools from Claude settings");
+    }
+    return tools;
+  } catch (error) {
+    logger.warn({ error }, "Failed to parse Claude settings for MCP tools");
+  }
+  return [];
+}
+
+/**
  * Initialize MCP Registry with known external tools
- * Reads from:
+ * Reads from (in order of precedence):
  * 1. FLYNN_MCP_TOOLS environment variable (comma-separated)
  * 2. ~/.flynn/mcp-tools.json config file
  * 3. ~/.claude/settings.json (extracts from permissions.allow)
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-source config loading requires sequential checks
+/**
+ * Initialize MCP Registry with known external tools
+ * Reads from (in order of precedence):
+ * 1. FLYNN_MCP_TOOLS environment variable (comma-separated)
+ * 2. ~/.flynn/mcp-tools.json config file
+ * 3. ~/.claude/settings.json (extracts from permissions.allow)
+ */
 function initializeExternalMcpTools(): void {
+  // Try each source in order of precedence
   let toolIds: string[] = [];
+  let source = "none";
 
-  // 1. From environment variable
-  const envTools = process.env.FLYNN_MCP_TOOLS;
-  if (envTools) {
-    toolIds = envTools.split(",").map((t) => t.trim());
-    logger.info({ count: toolIds.length }, "Loaded MCP tools from environment");
-  }
-
-  // 2. From Flynn config file
-  const flynnConfigPath = join(homedir(), ".flynn", "mcp-tools.json");
-  if (toolIds.length === 0 && existsSync(flynnConfigPath)) {
-    try {
-      const config = JSON.parse(readFileSync(flynnConfigPath, "utf-8")) as { tools?: string[] };
-      if (config.tools && Array.isArray(config.tools)) {
-        toolIds = config.tools;
-        logger.info({ count: toolIds.length }, "Loaded MCP tools from Flynn config");
+  const envTools = loadToolsFromEnv();
+  if (envTools.length > 0) {
+    toolIds = envTools;
+    source = "environment";
+  } else {
+    const configTools = loadToolsFromFlynnConfig();
+    if (configTools.length > 0) {
+      toolIds = configTools;
+      source = "Flynn config";
+    } else {
+      const claudeTools = loadToolsFromClaudeSettings();
+      if (claudeTools.length > 0) {
+        toolIds = claudeTools;
+        source = "Claude settings";
       }
-    } catch {
-      logger.warn("Failed to parse Flynn MCP tools config");
     }
   }
 
-  // 3. From Claude settings (extract mcp__ tools from permissions)
-  const claudeSettingsPath = join(homedir(), ".claude", "settings.json");
-  if (toolIds.length === 0 && existsSync(claudeSettingsPath)) {
-    try {
-      const settings = JSON.parse(readFileSync(claudeSettingsPath, "utf-8")) as {
-        permissions?: { allow?: string[] };
-      };
-      const allowList = settings?.permissions?.allow || [];
-      toolIds = allowList.filter((t) => t.startsWith("mcp__"));
-      if (toolIds.length > 0) {
-        logger.info({ count: toolIds.length }, "Loaded MCP tools from Claude settings");
-      }
-    } catch {
-      logger.warn("Failed to parse Claude settings for MCP tools");
-    }
-  }
-
-  // Initialize the registry
   if (toolIds.length > 0) {
     initializeMcpRegistry(toolIds);
-    logger.info({ tools: toolIds.length }, "MCP Registry initialized");
+    logger.info({ tools: toolIds.length, source }, "MCP Registry initialized successfully");
   } else {
-    logger.debug("No external MCP tools configured");
+    logger.warn(
+      {
+        hint: "Set FLYNN_MCP_TOOLS env var or create ~/.flynn/mcp-tools.json",
+      },
+      "No external MCP tools configured - registry is empty",
+    );
+    // Initialize empty registry to prevent errors
+    initializeMcpRegistry([]);
   }
 }
 

@@ -1,0 +1,509 @@
+/**
+ * REFACTORED VERSION - Reduces complexity from 29 to under 15
+ *
+ * Source: Clean Code TypeScript (labs42io/clean-code-typescript)
+ * Patterns Applied:
+ * - Extract Method: Break down complex logic into smaller functions
+ * - Guard Clauses: Early returns for validation
+ * - Single Responsibility: Each function has one purpose
+ * - Parameter Objects: Group related parameters
+ */
+
+import { join } from "node:path";
+import { existsSync, writeFileSync } from "node:fs";
+import type {
+  CodexDelegateOutput,
+  HandoffFile,
+  ChunkingResult,
+} from "./types";
+
+// ============================================
+// 1. VALIDATION FUNCTIONS (Guard Clauses)
+// ============================================
+
+/**
+ * Validates required parameters for delegation
+ * Complexity: 2 (was part of 29)
+ */
+function validateDelegationParams(
+  task: string | undefined,
+  codexPath: string | undefined,
+  operation: string,
+): CodexDelegateOutput | null {
+  if (!task) {
+    return {
+      success: false,
+      operation,
+      error: "Task description required for delegation",
+    };
+  }
+
+  if (!codexPath) {
+    return {
+      success: false,
+      operation,
+      error: "Codex CLI not found. Install with: npm install -g @openai/codex",
+      recoveryHint: "Install Codex CLI or provide codexPath parameter",
+    };
+  }
+
+  return null; // Validation passed
+}
+
+// ============================================
+// 2. CHUNKING LOGIC
+// ============================================
+
+interface ChunkingDecision {
+  useChunking: boolean;
+  chunkingResult: ChunkingResult | null;
+}
+
+/**
+ * Decides if task should be chunked
+ * Complexity: 3 (was part of 29)
+ */
+function decideChunking(
+  enableChunking: boolean,
+  task: string,
+  timeout: number,
+  maxChunkDurationMs: number,
+): ChunkingDecision {
+  if (!enableChunking) {
+    return { useChunking: false, chunkingResult: null };
+  }
+
+  if (!needsChunking(task, timeout)) {
+    return { useChunking: false, chunkingResult: null };
+  }
+
+  const chunkingResult = chunkTask(task, {
+    maxChunkDurationMs,
+    complexityThreshold: 50,
+  });
+
+  return {
+    useChunking: chunkingResult.requiresChunking,
+    chunkingResult,
+  };
+}
+
+// ============================================
+// 3. HANDOFF INITIALIZATION
+// ============================================
+
+interface TaskContext {
+  files?: string[];
+  requirements?: string;
+  constraints?: string[];
+}
+
+/**
+ * Creates and adds task to handoff
+ * Complexity: 2 (was part of 29)
+ */
+function addTaskToHandoff(
+  handoff: HandoffFile,
+  task: string,
+  useChunking: boolean,
+  chunkingResult: ChunkingResult | null,
+  context?: TaskContext,
+): HandoffFile {
+  const taskData = useChunking && chunkingResult
+    ? {
+        description: `[CHUNKED] ${task}`,
+        assignedTo: "codex",
+        priority: "medium",
+        inputContext: {
+          files: context?.files || [],
+          codeSnippets: [],
+          requirements: `Chunked into ${chunkingResult.chunks.length} subtasks. ${context?.requirements || ""}`,
+          constraints: context?.constraints || [],
+          dependencies: [],
+        },
+      }
+    : {
+        description: task,
+        assignedTo: "codex",
+        priority: "medium",
+        inputContext: {
+          files: context?.files || [],
+          codeSnippets: [],
+          requirements: context?.requirements,
+          constraints: context?.constraints || [],
+          dependencies: [],
+        },
+      };
+
+  return addTask(handoff, taskData);
+}
+
+/**
+ * Initializes handoff with active session and task
+ * Complexity: 2 (was part of 29)
+ */
+function initializeHandoff(
+  handoffPath: string,
+  workingDir: string,
+  task: string,
+  useChunking: boolean,
+  chunkingResult: ChunkingResult | null,
+  context?: TaskContext,
+): { handoff: HandoffFile; currentTask: any } {
+  let handoff = getOrCreateHandoff(handoffPath, workingDir);
+  handoff = updateSessionStatus(handoff, "active");
+  handoff = addTaskToHandoff(handoff, task, useChunking, chunkingResult, context);
+
+  const currentTask = handoff.tasks[handoff.tasks.length - 1];
+  if (!currentTask) {
+    throw new Error("Failed to create task");
+  }
+
+  handoff = updateTask(handoff, currentTask.id, { status: "in_progress" });
+
+  return { handoff, currentTask };
+}
+
+/**
+ * Saves handoff to both paths
+ * Complexity: 1 (was part of 29)
+ */
+function persistHandoff(
+  handoff: HandoffFile,
+  handoffPath: string,
+  workingDir: string,
+  sessionDir: string,
+): void {
+  saveHandoff(handoff, handoffPath, workingDir);
+
+  ensureDir(sessionDir);
+  const sessionPath = join(sessionDir, `${handoff.session.id}.json`);
+  writeFileSync(sessionPath, serializeHandoffFile(handoff), "utf-8");
+}
+
+// ============================================
+// 4. EXECUTION LOGIC
+// ============================================
+
+interface ExecutionResult {
+  success: boolean;
+  output: string;
+  error?: string;
+  logFile?: string;
+}
+
+interface ExecutionInfo {
+  result: ExecutionResult;
+  chunkingInfo: {
+    enabled: boolean;
+    totalChunks: number;
+    completedChunks: number;
+    complexityScore: number;
+  };
+}
+
+/**
+ * Executes task with or without chunking
+ * Complexity: 3 (was part of 29)
+ */
+async function executeTask(
+  useChunking: boolean,
+  chunkingResult: ChunkingResult | null,
+  codexPath: string,
+  task: string,
+  workingDir: string,
+  timeout: number,
+  maxChunkDurationMs: number,
+  sessionId: string,
+  sessionDir: string,
+): Promise<ExecutionInfo> {
+  if (useChunking && chunkingResult) {
+    return executeWithChunking(
+      codexPath,
+      chunkingResult,
+      workingDir,
+      maxChunkDurationMs,
+      sessionId,
+      sessionDir,
+    );
+  }
+
+  return executeWithoutChunking(
+    codexPath,
+    task,
+    workingDir,
+    timeout,
+    sessionId,
+    sessionDir,
+  );
+}
+
+/**
+ * Executes chunked task
+ * Complexity: 2 (was part of 29)
+ */
+async function executeWithChunking(
+  codexPath: string,
+  chunkingResult: ChunkingResult,
+  workingDir: string,
+  maxChunkDurationMs: number,
+  sessionId: string,
+  sessionDir: string,
+): Promise<ExecutionInfo> {
+  const chunkedResult = await executeChunkedTask(
+    codexPath,
+    chunkingResult,
+    workingDir,
+    maxChunkDurationMs,
+    sessionId,
+    sessionDir,
+  );
+
+  return {
+    result: {
+      success: chunkedResult.success,
+      output: chunkedResult.aggregatedOutput,
+      error:
+        chunkedResult.errors.length > 0
+          ? `${chunkedResult.completedChunks}/${chunkedResult.totalChunks} chunks completed. Errors: ${chunkedResult.errors.join("; ")}`
+          : undefined,
+    },
+    chunkingInfo: {
+      enabled: true,
+      totalChunks: chunkedResult.totalChunks,
+      completedChunks: chunkedResult.completedChunks,
+      complexityScore: chunkingResult.complexity.score,
+    },
+  };
+}
+
+/**
+ * Executes single task without chunking
+ * Complexity: 1 (was part of 29)
+ */
+async function executeWithoutChunking(
+  codexPath: string,
+  task: string,
+  workingDir: string,
+  timeout: number,
+  sessionId: string,
+  sessionDir: string,
+): Promise<ExecutionInfo> {
+  const result = await executeCodex(
+    codexPath,
+    task,
+    workingDir,
+    timeout,
+    sessionId,
+    sessionDir,
+  );
+
+  return {
+    result,
+    chunkingInfo: {
+      enabled: false,
+      totalChunks: 1,
+      completedChunks: result.success ? 1 : 0,
+      complexityScore: 0,
+    },
+  };
+}
+
+// ============================================
+// 5. SUCCESS/FAILURE HANDLING
+// ============================================
+
+/**
+ * Handles successful execution
+ * Complexity: 2 (was part of 29)
+ */
+function handleSuccess(
+  handoff: HandoffFile,
+  currentTask: any,
+  result: ExecutionResult,
+  operation: string,
+  handoffPath: string,
+  workingDir: string,
+  sessionDir: string,
+  chunkingInfo: any,
+): CodexDelegateOutput {
+  const events = parseJsonlEvents(result.output);
+  handoff = updateTask(handoff, currentTask.id, {
+    status: "completed",
+    outputContext: {
+      filesModified: [],
+      filesCreated: [],
+      summary: extractSummary(events),
+      notes: [],
+      errors: [],
+    },
+  });
+  handoff = updateSessionStatus(handoff, "completed");
+  persistHandoff(handoff, handoffPath, workingDir, sessionDir);
+
+  const { outputLog, statusFile: statusFilePath } = getSessionLogPaths(
+    sessionDir,
+    handoff.session.id,
+  );
+
+  return {
+    success: true,
+    operation,
+    sessionId: handoff.session.id,
+    logFile: existsSync(outputLog) ? outputLog : undefined,
+    statusFile: existsSync(statusFilePath) ? statusFilePath : undefined,
+    events: events.map((e) => ({ type: e.type, timestamp: e.timestamp })),
+    summary: extractSummary(events),
+    handoffFile: join(workingDir, handoffPath),
+    chunking: chunkingInfo,
+  };
+}
+
+/**
+ * Handles failed execution
+ * Complexity: 2 (was part of 29)
+ */
+function handleFailure(
+  handoff: HandoffFile,
+  currentTask: any,
+  result: ExecutionResult,
+  operation: string,
+  handoffPath: string,
+  workingDir: string,
+  sessionDir: string,
+  chunkingInfo: any,
+): CodexDelegateOutput {
+  handoff = updateTask(handoff, currentTask.id, {
+    status: "failed",
+    outputContext: {
+      filesModified: [],
+      filesCreated: [],
+      notes: [],
+      errors: [result.error || "Unknown error"],
+    },
+  });
+  handoff = updateSessionStatus(handoff, "failed");
+  persistHandoff(handoff, handoffPath, workingDir, sessionDir);
+
+  const { outputLog, statusFile: statusFilePath } = getSessionLogPaths(
+    sessionDir,
+    handoff.session.id,
+  );
+
+  return {
+    success: false,
+    operation,
+    sessionId: handoff.session.id,
+    logFile: existsSync(outputLog) ? outputLog : undefined,
+    statusFile: existsSync(statusFilePath) ? statusFilePath : undefined,
+    error: result.error,
+    recoveryHint: `Check log file for details: ${outputLog}`,
+    handoffFile: join(workingDir, handoffPath),
+    chunking: chunkingInfo,
+  };
+}
+
+// ============================================
+// 6. MAIN REFACTORED FUNCTION
+// ============================================
+
+/**
+ * Handle delegate operation with P2 chunking support
+ *
+ * REFACTORED: Complexity reduced from 29 to ~8
+ * - Uses Extract Method pattern
+ * - Single Responsibility per function
+ * - Guard clauses for validation
+ * - Clear separation of concerns
+ */
+async function handleDelegateOperation(
+  operation: string,
+  task: string | undefined,
+  codexPath: string | undefined,
+  handoffPath: string,
+  workingDir: string,
+  sessionDir: string,
+  outputDir: string,
+  timeout: number,
+  enableChunking: boolean,
+  maxChunkDurationMs: number,
+  context?: TaskContext,
+): Promise<CodexDelegateOutput> {
+  // 1. Validate (Guard Clauses)
+  const validationError = validateDelegationParams(task, codexPath, operation);
+  if (validationError) {
+    return validationError;
+  }
+
+  // 2. Decide chunking
+  const { useChunking, chunkingResult } = decideChunking(
+    enableChunking,
+    task!,
+    timeout,
+    maxChunkDurationMs,
+  );
+
+  // 3. Initialize handoff
+  let handoff: HandoffFile;
+  let currentTask: any;
+  try {
+    ({ handoff, currentTask } = initializeHandoff(
+      handoffPath,
+      workingDir,
+      task!,
+      useChunking,
+      chunkingResult,
+      context,
+    ));
+  } catch (error) {
+    return {
+      success: false,
+      operation,
+      error: error instanceof Error ? error.message : "Failed to initialize handoff",
+    };
+  }
+
+  persistHandoff(handoff, handoffPath, workingDir, sessionDir);
+  ensureDir(outputDir);
+
+  // 4. Execute task
+  const { result, chunkingInfo } = await executeTask(
+    useChunking,
+    chunkingResult,
+    codexPath!,
+    task!,
+    workingDir,
+    timeout,
+    maxChunkDurationMs,
+    handoff.session.id,
+    sessionDir,
+  );
+
+  // 5. Handle result
+  if (result.success) {
+    return handleSuccess(
+      handoff,
+      currentTask,
+      result,
+      operation,
+      handoffPath,
+      workingDir,
+      sessionDir,
+      chunkingInfo,
+    );
+  }
+
+  return handleFailure(
+    handoff,
+    currentTask,
+    result,
+    operation,
+    handoffPath,
+    workingDir,
+    sessionDir,
+    chunkingInfo,
+  );
+}
+
+// Export refactored function
+export { handleDelegateOperation };

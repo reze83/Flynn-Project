@@ -4,12 +4,15 @@ Thank you for your interest in contributing to Flynn! This guide will help you g
 
 ## Development Setup
 
+> **Quick Start:** See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a 5-minute setup guide.
+
 ### Prerequisites
 
-- Node.js 20+
-- pnpm 9+
-- Python 3.11+ (optional, for data/ML tools)
-- Git
+- **Node.js 20+** ([Download](https://nodejs.org/))
+- **pnpm 9+** (`npm install -g pnpm`)
+- **Python 3.11+** (optional, for data/ML tools)
+- **Git** ([Download](https://git-scm.com/))
+- **Claude Code CLI** (for testing MCP integration)
 
 ### Initial Setup
 
@@ -299,11 +302,78 @@ If you discover a security vulnerability, please:
 - Update README when adding features
 - Keep ADRs for significant architectural decisions
 
+## Debugging & Development Tips
+
+### Local MCP Server Testing
+
+Test your changes without restarting Claude Code:
+
+```bash
+# Terminal 1: Start MCP server in development mode
+pnpm --filter @flynn/server dev
+
+# Terminal 2: Test with MCP Inspector (if available)
+npx @modelcontextprotocol/inspector apps/server/dist/server.js
+```
+
+### Common Development Tasks
+
+```bash
+# Clean build artifacts
+pnpm clean
+
+# Rebuild specific package
+pnpm --filter @flynn/tools build
+
+# Watch mode for rapid iteration
+pnpm --filter @flynn/tools dev
+
+# Run tests for specific file
+pnpm test -- path/to/test.test.ts
+```
+
+### Debugging Agents
+
+Add debug logging to your agent:
+
+```typescript
+import { createLogger } from "@flynn/core";
+const logger = createLogger("my-agent");
+
+logger.debug("Agent context loaded", { tools, workflow });
+logger.info("Executing step 1");
+logger.error("Step failed", error);
+```
+
+### Architecture Decision Records (ADRs)
+
+For significant architectural changes, create an ADR in `docs/decisions/`:
+
+```markdown
+# NNN: Title
+
+**Status:** Proposed | Accepted | Deprecated | Superseded
+
+**Context:**
+What is the issue we're trying to solve?
+
+**Decision:**
+What is the change we're making?
+
+**Consequences:**
+What becomes easier or harder as a result?
+
+**Alternatives Considered:**
+What other options did we evaluate?
+```
+
 ## Getting Help
 
-- **Issues:** Open an issue for bugs or feature requests
-- **Discussions:** Use GitHub Discussions for questions
-- **Documentation:** Check `/docs` for detailed guides
+- **Documentation:** Check [docs/](docs/) for detailed guides
+- **Quick Start:** [docs/QUICKSTART.md](docs/QUICKSTART.md) for setup
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
+- **Issues:** [Open an issue](https://github.com/reze83/Flynn-Project/issues) for bugs or feature requests
+- **Discussions:** Use [GitHub Discussions](https://github.com/reze83/Flynn-Project/discussions) for questions
 
 ## License
 

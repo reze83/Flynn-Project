@@ -19,14 +19,17 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "commander": "^12.1.0",
+    "@flynn/core": "workspace:*",
+    "@flynn/tools": "workspace:*",
     "chalk": "^5.3.0",
     "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
     "ora": "^8.1.0",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/prompts": "^2.4.9",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
   },

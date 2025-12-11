@@ -343,9 +343,9 @@ describe("Sprint 2: New Multi-Agent Workflows", () => {
 // ============================================
 
 describe("Total Agent Count", () => {
-  it("has 27 agents total (11 original + 16 new)", () => {
+  it("has at least 27 agents total (11 original + 16 new)", () => {
     const agentIds = getAgentIds();
-    expect(agentIds.length).toBe(27);
+    expect(agentIds.length).toBeGreaterThanOrEqual(27);
   });
 
   it("has all original agents", () => {

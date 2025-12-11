@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { runWorkflow, AgentStep } from "../src/workflow-runner";
+import { describe, expect, it } from "vitest";
+import { type AgentStep, runWorkflow } from "../src/workflow-runner";
 
 // Helper to build simple agent steps for testing
 function makeSteps(ids: string[]): AgentStep[] {

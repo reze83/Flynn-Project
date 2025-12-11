@@ -234,26 +234,78 @@ export const refactor: AgentContext = {
 - Optimize performance
 - Enhance readability
 
-## Patterns
-- Extract functions/classes
+## **VERPFLICHTEND: Dokumentations-Recherche vor Refactoring**
+
+Bei JEDEM Refactoring-Vorschlag **MUSST** du folgende Schritte durchführen:
+
+### 1. Recherche Best Practices (PFLICHT)
+**Vor jeder Änderung:**
+- Nutze Context7 für offizielle Library-Dokumentation:
+  \`\`\`
+  mcp__context7__resolve-library-id({ libraryName: "betroffene-technologie" })
+  mcp__context7__get-library-docs({ context7CompatibleLibraryID: "/org/project" })
+  \`\`\`
+
+- Nutze Exa für Best Practices und Code-Beispiele:
+  \`\`\`
+  mcp__exa__get_code_context_exa({ 
+    query: "TypeScript refactoring pattern für [specific-case]",
+    tokensNum: 3000 
+  })
+  \`\`\`
+
+### 2. Validierung (PFLICHT)
+**Jeder Vorschlag muss enthalten:**
+- ✅ **Quelle**: Link zur offiziellen Dokumentation
+- ✅ **Version**: Library-Version der Empfehlung
+- ✅ **Best Practice**: Welches Pattern wird angewendet
+- ✅ **Warum**: Erklärung basierend auf Dokumentation
+
+### 3. Beispiel-Format
+\`\`\`markdown
+## Refactoring: [Was]
+
+**Quelle**: Refactoring.Guru (Benchmark 85.5) - /websites/refactoring_guru
+**Pattern**: [Pattern-Name]
+**Begründung**: Laut offizieller Dokumentation verbessert dieses Pattern [...]
+
+**Vorher:**
+[code]
+
+**Nachher:**
+[code]
+\`\`\`
+
+## **FEHLER: Refactoring ohne Dokumentation**
+❌ Wenn du einen Vorschlag **ohne** Context7/Exa-Recherche machst:
+1. Der Vorschlag wird **zurückgewiesen**
+2. Du musst zuerst recherchieren
+3. Dann erneut vorschlagen mit Quellenangabe
+
+## Refactoring-Patterns
+- Extract functions/classes (nach Martin Fowler)
 - Rename for clarity
 - Remove dead code
-- Simplify conditionals`,
-  tools: ["file-ops", "project-analysis"],
+- Simplify conditionals
+- Apply SOLID principles`,
+  tools: ["file-ops", "project-analysis", "documentation", "research"],
   workflow: [
-    "Analyze current code structure",
-    "Identify improvement opportunities",
-    "Plan refactoring steps",
-    "Apply changes incrementally",
-    "Verify behavior unchanged",
+    "**1. RECHERCHE** - Hole offizielle Dokumentation mit Context7/Exa",
+    "2. Analyze current code structure",
+    "3. Identify improvement opportunities mit Dokumentations-Referenz",
+    "4. Plan refactoring steps basierend auf Best Practices",
+    "5. Apply changes incrementally",
+    "6. Verify behavior unchanged",
   ],
   constraints: [
+    "**VERPFLICHTEND: Kein Refactoring ohne Context7/Exa-Recherche**",
+    "**VERPFLICHTEND: Jeder Vorschlag braucht Dokumentations-Link**",
     "Don't change behavior",
     "Make incremental changes",
     "Keep tests passing",
-    "Document significant changes",
+    "Document significant changes with sources",
   ],
-  outputFormat: "Before/after comparisons with rationale",
+  outputFormat: "Before/after comparisons with rationale **AND documentation source**",
   triggers: [
     "refactor",
     "improve",
@@ -266,15 +318,16 @@ export const refactor: AgentContext = {
     "upgrade",
   ],
   capabilities: [
-    "Refactor code",
-    "Improve performance",
-    "Clean up codebase",
-    "Optimize algorithms",
+    "Refactor code with documented best practices",
+    "Improve performance based on official guidelines",
+    "Clean up codebase following industry standards",
+    "Optimize algorithms with proven patterns",
   ],
   recommendedModel: "sonnet",
-  modelRationale: "Refactoring requires understanding code structure",
-  tier1TokenEstimate: 120,
-  tier2TokenEstimate: 380,
+  modelRationale:
+    "Refactoring requires understanding code structure AND researching best practices",
+  tier1TokenEstimate: 150,
+  tier2TokenEstimate: 580,
 };
 
 export const release: AgentContext = {

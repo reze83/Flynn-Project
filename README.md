@@ -18,397 +18,263 @@ Pilot 27 specialized agents for Claude Code — **no API keys**. Local-first, to
 
 `User → Claude Code → Flynn MCP Server → Specialized Agents → Result`
 
+[Quick Start](docs/QUICKSTART.md) · [Documentation](docs/) · [Examples](docs/MULTI-AGENT-EXAMPLES.md) · [Contributing](CONTRIBUTING.md)
+
 </div>
 
-> **Why Flynn exists**
-> Claude Code has the LLM. Flynn supplies the expertise: 27 agent contexts, 22 workflows, and 18 MCP tools — all local, no secrets, no telemetry.
+## What is Flynn?
 
-## Navigation
+Flynn is an **expert system** for Claude Code that provides:
 
-- Signals
-- System Map
-- Flight Plan
-- Wiring Claude Code
-- Command Patterns
-- Agent Roster & Workflows
-- Integration & Security
-- Develop / Operate
-- Architecture Map
-- Docs & Contribute
+- **27 specialized agents** (coder, diagnostic, security, ml-engineer, blockchain-developer, orchestrator, …)
+- **23 multi-agent workflows** for real delivery (bugfix, full-stack-feature, security-hardening, incident-response, migrations)
+- **18 MCP tools** (routing, git/file/shell, skills, analytics, health, codex integration)
+- **17 skills** with progressive disclosure (debugging, TDD, planning, security, prompt engineering)
+- **Local-first**, offline-capable, zero API keys, policy profiles baked in
+- **Token-efficient** progressive disclosure (70–90% savings)
 
-## Signals (What makes Flynn different)
+> **Why Flynn?**
+> Claude Code has the LLM. Flynn supplies the expertise: curated agent contexts, workflows, and tools — all local, no secrets, no telemetry.
 
-- **27 curated agent contexts** (coder, diagnostic, security, ml-engineer, blockchain-developer, orchestrator, …)
-- **22 multi-agent workflows** for real delivery work (bugfix, full-stack-feature, security-hardening, incident-response, migrations, codex-integration)
-- **18 MCP tools**: routing, git/file/shell, skills, analytics, health, external MCP discovery, codex integration
-- **17 skills with progressive disclosure**: debugging, TDD, planning, security, prompt engineering, and more
-- Local-first and offline-capable; zero API keys; policy profiles baked in
-- Token-efficient progressive disclosure (typ. 70–90% savings); hybrid models: opus · sonnet · haiku
+## Quick Start
 
-## System Map
-
-```
-User
-  ↳ Claude Code
-      ↳ Flynn MCP Server (routing, policy, analytics)
-          ↳ Agent contexts (27)
-          ↳ Workflows (22)
-          ↳ MCP tools (18)
-          ↳ Skills (17)
-              ↳ Result
-```
-
-## Flight Plan (Quick Start)
-
-### Recommended: Automated Installer
+### Automated Installation (Recommended)
 
 ```bash
-# Download installer
 curl -fsSL https://raw.githubusercontent.com/reze83/Flynn-Project/main/install-flynn.sh -o install-flynn.sh
-
-# Make executable and run
 chmod +x install-flynn.sh
 ./install-flynn.sh
 ```
 
-The installer handles everything: dependencies, building, Claude Code configuration, and verification.
+The installer handles dependencies, building, Claude Code configuration, and verification.
 
 ### Manual Installation
 
 ```bash
 git clone https://github.com/reze83/Flynn-Project.git
 cd Flynn-Project
+pnpm install && pnpm build
 ```
 
-```bash
-# Install dependencies. This script tries pnpm first and falls back to npm when pnpm is absent.
-npm run install:local
+**Configuration:**
+1. Add Flynn MCP server to `~/.claude.json`
+2. Allow Flynn tools in `~/.claude/settings.json`
+3. Restart Claude Code
 
-# Build all packages
-pnpm build
+📖 **[Full Setup Guide](docs/QUICKSTART.md)**
 
-# Launch MCP server
-pnpm --filter @flynn/server start
-```
+## Usage Examples
 
-> **Hinweis:** Sollte `pnpm` nicht installiert sein, nutzt das Skript `install:local` automatisch `npm install`. Dies erleichtert die Installation auf Systemen ohne pnpm.
-
-> **Note:** The repository includes a `.npmrc` file that configures pnpm to allow build scripts. If you see warnings about ignored build scripts, they can be safely ignored—all tools function correctly.
-
-**Requirements:** Node.js 20+, pnpm 9+, Python 3.11+ (optional for data/ML tools)
-
-## Wire Claude Code
-
-**MCP Server (global)** – `~/.claude.json`  
-Add the Flynn server definition here. Claude Code reads `mcpServers` from this file.
-
-```json
-{
-  "mcpServers": {
-    "flynn": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<PATH_TO_FLYNN>/apps/server/dist/server.js"]
-    }
-  }
-}
-```
-
-> Replace `<PATH_TO_FLYNN>` with your actual installation path, e.g., `/home/user/Flynn-Project`
-
-**Tool-Allowlist (global)** – `~/.claude/settings.json`  
-Allow Flynn tools here (Claude reads `permissions.allow` from this file).
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__flynn__analyze-project",
-      "mcp__flynn__system-info",
-      "mcp__flynn__route-task",
-      "mcp__flynn__get-agent-context",
-      "mcp__flynn__orchestrate",
-      "mcp__flynn__list-workflows",
-      "mcp__flynn__heal-error",
-      "mcp__flynn__git-ops",
-      "mcp__flynn__file-ops",
-      "mcp__flynn__shell",
-      "mcp__flynn__get-skill",
-      "mcp__flynn__list-skills",
-      "mcp__flynn__generate-hooks",
-      "mcp__flynn__health-check",
-      "mcp__flynn__analytics",
-      "mcp__flynn__list-mcp-tools",
-      "mcp__flynn__codex-delegate",
-      "mcp__flynn__codex-md-generator"
-    ]
-  }
-}
-```
-
-**Tool-Allowlist (project)** – `.claude/settings.local.json`  
-Use the same `permissions.allow` block here if you want project-scoped allowlists.
-
-## Command Patterns
-
-**Single agent**
+### Simple Bug Fix
 
 ```bash
 /flynn fix the authentication bug
-# Flynn routes to the diagnostic agent automatically
 ```
 
-**Multi-agent workflow**
+### Multi-Agent Workflow
 
 ```bash
 /flynn build full stack user authentication
-# Orchestrates: api-designer → database-architect → coder → frontend-architect → test-architect → security → devops-engineer
 ```
 
-### CLI Workflows
+Orchestrates 7 agents: api-designer → database-architect → coder → frontend-architect → test-architect → security → devops-engineer
 
-Mit dem neuen `flynn run`-Befehl können Sie Workflows direkt aus der Kommandozeile planen und ausführen. Wenn keine Aufgabe angegeben wird, fragt ein Assistent interaktiv nach dem Task.
+### Code Review
 
 ```bash
-# Planen Sie einen Workflow für eine Aufgabe und führen Sie ihn anschließend aus
-flynn run -t "migrate project to React 18" --execute
-
-# Interaktiv: Beschreibt eine Aufgabe und wählt dann die Ausführung aus
-flynn run --execute
+/flynn review the payment processing module
 ```
 
-### Sicherheitsprüfung
+Triggers parallel review: reviewer (quality) + security (vulnerabilities) + performance (bottlenecks)
 
-Der Befehl `flynn scan` durchsucht eine JavaScript/TypeScript‑Datei nach gefährlichen Funktionen wie `eval` oder `child_process.exec`【430188905619224†L703-L713】.
+## Core Features
 
-```bash
-# Eine Datei auf unsichere Funktionen prüfen
-flynn scan src/app.ts
+### 27 Specialized Agents
+
+| Category | Agents |
+|----------|--------|
+| **Core** | coder, diagnostic, scaffolder, installer, refactor, release, healer, data, security, reviewer, performance |
+| **Architecture** | system-architect, database-architect, frontend-architect, api-designer |
+| **Operations** | devops-engineer, terraform-expert, kubernetes-operator, incident-responder |
+| **Specialized** | migration-specialist, test-architect, documentation-architect, ml-engineer, data-engineer, mobile-developer, blockchain-developer |
+| **Integration** | orchestrator (Codex delegation) |
+
+📖 **[Full Agent Reference](docs/AGENTS.md)**
+
+### 23 Pre-Built Workflows
+
+| Workflow | Use Case |
+|----------|----------|
+| fix-bug | Bug investigation & fix |
+| add-feature | Add new functionality |
+| full-stack-feature | End-to-end feature development (7 agents) |
+| security-hardening | Security upgrades (4 agents) |
+| codebase-migration | Framework migrations (6 agents) |
+| documentation-suite | Project documentation (4 agents) |
+
+📖 **[All Workflows](docs/WORKFLOWS.md)** · **[Workflow Examples](docs/MULTI-AGENT-EXAMPLES.md)**
+
+### 18 MCP Tools
+
+**Development:**
+- `route-task` - Route tasks to agents
+- `get-agent-context` - Get agent instructions
+- `orchestrate` - Plan multi-agent workflows
+
+**Operations:**
+- `git-ops`, `file-ops`, `shell` - System operations
+- `health-check`, `analytics` - Monitoring
+
+**Skills & Learning:**
+- `get-skill`, `list-skills` - Progressive disclosure
+- `list-mcp-tools` - External MCP discovery
+
+**Integration:**
+- `codex-delegate` - Delegate to OpenAI Codex
+- `codex-md-generator` - Generate CODEX.md files
+
+📖 **[Full Tool Reference](docs/TOOLS.md)**
+
+## Architecture
+
+```
+User
+  ↳ Claude Code
+      ↳ Flynn MCP Server (routing, policy, analytics)
+          ↳ Agent contexts (27)
+          ↳ Workflows (23)
+          ↳ MCP tools (18)
+          ↳ Skills (17)
+              ↳ Result
 ```
 
-### Cache‑Management
+**Repository Structure:**
 
-Persistente Caches für Embeddings, RAG‑Suchergebnisse und Projektanalysen können mit dem folgenden Befehl gelöscht werden:
-
-```bash
-# Caches im Ordner .flynn_cache löschen
-flynn cache clear
+```
+Flynn-Project/
+├── apps/
+│   ├── server/         # MCP server (entry point)
+│   ├── cli/            # CLI tools
+│   └── dashboard/      # Analytics dashboard
+├── packages/
+│   ├── core/           # Logging, policy, paths
+│   ├── tools/          # MCP tools implementation
+│   ├── agents/         # Agent contexts & workflows
+│   └── analytics/      # Usage tracking (LibSQL)
+├── docs/               # Documentation
+└── scripts/            # Build & deployment
 ```
 
-**Direct MCP tools**
+📖 **[Architecture Guide](docs/ARCHITECTURE.md)**
 
-```bash
-mcp__flynn__route-task({ "message": "optimize database queries" })
-mcp__flynn__get-agent-context({ "task": "security audit", "agent": "security" })
-mcp__flynn__orchestrate({ "task": "migrate from React 17 to 18" })
-mcp__flynn__health-check({ "checks": ["all"] })
-```
+## Integration
 
-## Agent Roster (by category)
+### Codex Integration
 
-| Category | Agents | Model |
-|----------|--------|-------|
-| **Core** | coder, diagnostic, scaffolder, installer, refactor, release, healer, data, security, reviewer, performance | haiku/sonnet |
-| **Architecture** | system-architect, database-architect, frontend-architect, api-designer | opus/sonnet |
-| **Operations** | devops-engineer, terraform-expert, kubernetes-operator, incident-responder | haiku/sonnet |
-| **Specialized** | migration-specialist, test-architect, documentation-architect, ml-engineer, data-engineer, mobile-developer, blockchain-developer | opus/sonnet |
-| **Integration** | orchestrator (Codex delegation) | sonnet |
-
-## Workflow Library
-
-| Workflow | Agents | Use case |
-|----------|--------|----------|
-| new-project | scaffolder → coder → diagnostic | Start a new codebase |
-| fix-bug | diagnostic → coder → diagnostic | Bug investigation & fix |
-| full-stack-feature | 7 agents | End-to-end feature dev |
-| security-hardening | security → reviewer → diagnostic → coder | Security upgrades |
-| incident-response | diagnostic → incident-responder → coder → healer | Production incidents |
-| codebase-migration | 6 agents | Framework migrations |
-| codex-delegation | orchestrator → coder → diagnostic | Delegate to Codex CLI |
-
-[All 22 workflows →](docs/WORKFLOWS.md)
-
-## Codex Integration
-
-Flynn provides seamless integration with OpenAI Codex CLI through two specialized tools:
-
-- **`codex-delegate`**: Delegate tasks to Codex with context handoff, session management, and live monitoring
-- **`codex-md-generator`**: Generate CODEX.md files with role-based templates and task-specific context
-
-### Real-time Monitoring
-
-Codex delegations now feature **live logging and status tracking**:
-
-```bash
-# All Codex sessions log to:
-~/.flynn/codex-sessions/{sessionId}.log      # Real-time output
-~/.flynn/codex-sessions/{sessionId}.status   # Current status (running/completed/failed/timeout)
-```
-
-**Monitor progress live:**
-
-```bash
-# Watch Codex work in real-time
-tail -f ~/.flynn/codex-sessions/*.log
-
-# Check status
-cat ~/.flynn/codex-sessions/*.status
-```
-
-**Usage example:**
+Flynn integrates with OpenAI Codex CLI:
 
 ```javascript
-// Delegate task to Codex
-const result = await mcp__flynn__codex_delegate({
+// Delegate task to Codex with real-time monitoring
+mcp__flynn__codex_delegate({
   operation: "delegate",
   task: "Create React component with TypeScript",
-  timeout: 300000,
-  workingDir: "/home/user/project"
+  timeout: 300000
 });
 
-// Response includes:
-// - sessionId: Track this task
-// - logFile: Path to live output
-// - statusFile: Path to status JSON
-// - liveStatus: { status: "running", timestamp, details }
-
-// Check status later
-const status = await mcp__flynn__codex_delegate({
-  operation: "status",
-  sessionId: result.sessionId
-});
-// Returns live status even if connection timed out
+// Monitor progress live
+tail -f ~/.flynn/codex-sessions/*.log
 ```
 
-**Key features:**
+**Features:**
+- ✅ Live logging and status tracking
+- ✅ Session management
+- ✅ Context handoff
+- ✅ Automatic completion detection
 
-- ✅ Stream Codex output to log files in real-time
-- ✅ Status files update automatically (running → completed/failed)
-- ✅ Session IDs returned on timeout for status checking
-- ✅ Monitor multiple Codex tasks simultaneously
-- ✅ Automatic completion detection—tasks end naturally, no infinite loops
+### External MCP Tools
 
-## External MCP Integration
+Flynn auto-discovers tools from:
+- `FLYNN_MCP_TOOLS` environment variable
+- `~/.flynn/mcp-tools.json` config
+- `~/.claude/settings.json` (auto-discovery)
 
-Flynn auto-discovers and recommends tools from:
+## Security
 
-- Environment variable `FLYNN_MCP_TOOLS`
-- Config file `~/.flynn/mcp-tools.json`
-- Claude settings `~/.claude/settings.json` (auto-discovery)
-
-Examples:
-
-```bash
-mcp__flynn__list-mcp-tools({ "category": "search" })
-mcp__flynn__get-agent-context({ "task": "research api", "agent": "documentation-architect" })
-```
-
-## Security Posture
+Flynn supports multiple security profiles:
 
 ```bash
 export FLYNN_POLICY_PROFILE=strict   # default | strict | airgapped
 ```
 
-- **default:** standard protections
-- **strict:** disables network-based tools
-- **airgapped:** maximum isolation (file operations only)
+- **default:** Standard protections
+- **strict:** Disables network-based tools
+- **airgapped:** Maximum isolation (file operations only)
 
-## Develop / Operate
+📖 **[Security Configuration](config/POLICY-PROFILES.md)**
+
+## Development
 
 ```bash
-pnpm lint
-pnpm typecheck
+# Run tests
 pnpm test
+
+# Type checking
+pnpm typecheck
+
+# Linting
+pnpm lint
+
+# Build
 pnpm build
+
+# Development mode (watch)
+pnpm --filter @flynn/server dev
 ```
 
-**Component runs**
-
-```bash
-# MCP Server
-pnpm --filter @flynn/server build && pnpm --filter @flynn/server start
-
-# CLI
-pnpm --filter @flynn/cli build && pnpm --filter @flynn/cli start
-
-# Dashboard (port 3001)
-cd apps/dashboard && pnpm start
-
-# Python MCP tools
-cd packages/python && uv run python -m server
-```
-
-## Ship / Release
-
-```bash
-pnpm version patch     # bump (patch|minor|major) as needed
-pnpm publish           # publish package artifacts if applicable
-```
-
-If you deploy the MCP server somewhere central, document the node path you use in settings. Keep CHANGELOG.md in sync with releases.
-
-## Architecture (repo map)
-
-```
-flynn/
-├── apps/
-│   ├── server/         # MCP server (entry point)
-│   ├── cli/            # Analytics + health CLI
-│   └── dashboard/      # Static analytics dashboard
-├── packages/
-│   ├── core/           # Logging, policy, paths, types
-│   ├── tools/          # MCP tools
-│   ├── agents/         # Agent contexts and workflows
-│   ├── analytics/      # Usage tracking (LibSQL)
-│   ├── plugins/        # Plugin framework
-│   ├── plugins-core/   # Core plugins (e.g., security-scanner)
-│   ├── bootstrap/      # Environment detection
-│   └── python/         # Python MCP tools (data/ML)
-├── config/             # Policy profiles
-└── docs/               # Architecture & references
-```
-
-## Skills Library
-
-Flynn includes 17 skills with progressive disclosure for token-efficient specialized knowledge:
-
-| Category | Skills |
-|----------|--------|
-| **Development** (5) | typescript-advanced, python-patterns, systematic-debugging, root-cause-tracing, mcp-builder |
-| **Architecture** (1) | api-design |
-| **DevOps** (2) | kubernetes-ops, terraform-iac |
-| **Testing** (3) | testing-strategies, test-driven-development, verification-before-completion |
-| **Productivity** (4) | brainstorming, writing-plans, executing-plans, dispatching-parallel-agents |
-| **Security** (1) | defense-in-depth |
-| **AI** (1) | prompt-engineering |
-
-[All 17 skills →](docs/SKILLS.md)
+📖 **[Contributing Guide](CONTRIBUTING.md)**
 
 ## Documentation
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System design and data flow
-- [docs/AGENTS.md](docs/AGENTS.md) — All 27 agents with capabilities
-- [docs/TOOLS.md](docs/TOOLS.md) — All 18 MCP tools with schemas
-- [docs/SKILLS.md](docs/SKILLS.md) — All 17 skills with progressive disclosure
-- [docs/WORKFLOWS.md](docs/WORKFLOWS.md) — All 22 multi-agent workflows
-- [docs/MULTI-AGENT-EXAMPLES.md](docs/MULTI-AGENT-EXAMPLES.md) — Complex workflow examples
-- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) — Common issues and solutions
-- [config/POLICY-PROFILES.md](config/POLICY-PROFILES.md) — Security configuration
-- [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
-- [CHANGELOG.md](CHANGELOG.md) — Version history
+- **[Quick Start Guide](docs/QUICKSTART.md)** - 5-minute setup
+- **[Full Documentation](docs/)** - Complete reference
+- **[Architecture](docs/ARCHITECTURE.md)** - System design
+- **[Agents](docs/AGENTS.md)** - All 27 agents
+- **[Workflows](docs/WORKFLOWS.md)** - All 23 workflows
+- **[Tools](docs/TOOLS.md)** - All 18 MCP tools
+- **[Skills](docs/SKILLS.md)** - All 17 skills
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues
+- **[Examples](docs/MULTI-AGENT-EXAMPLES.md)** - Complex patterns
 
-## Contribute
+## Requirements
 
-Pull requests welcome. Please open an issue for major changes and align on policy profile defaults. Run `pnpm lint && pnpm typecheck && pnpm test` before submitting.
+- **Node.js 20+** ([Download](https://nodejs.org/))
+- **pnpm 9+** (`npm install -g pnpm`)
+- **Python 3.11+** (optional, for data/ML tools)
+- **Claude Code CLI** installed
 
-## Why Flynn (at a glance)
+## Contributing
 
-- No API keys; Claude Code supplies the LLM, Flynn supplies the expertise
-- Token-efficient prompting (progressive disclosure saves 70–90%)
-- Local-first with zero telemetry
-- Composable agents and workflows for real delivery work
-- Extensible: add custom agents, skills, plugins
+Pull requests welcome! Please:
+
+1. Open an issue for major changes
+2. Run `pnpm lint && pnpm typecheck && pnpm test`
+3. Follow existing code style
+4. Update documentation
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Why Flynn?
+
+- ✅ **No API keys** - Claude Code supplies the LLM, Flynn supplies the expertise
+- ✅ **Token-efficient** - Progressive disclosure saves 70–90% tokens
+- ✅ **Local-first** - Zero telemetry, works offline
+- ✅ **Production-ready** - 27 agents, 23 workflows, 18 tools
+- ✅ **Extensible** - Add custom agents, skills, plugins
 
 ## License
 
-MIT
+[MIT](LICENSE) © Flynn Project Contributors
+
+---
+
+**Need Help?** Check [Troubleshooting](docs/TROUBLESHOOTING.md) or open an [Issue](https://github.com/reze83/Flynn-Project/issues).

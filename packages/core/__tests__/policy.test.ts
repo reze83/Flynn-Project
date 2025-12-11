@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { validateFunctionUsage } from "../src/policy";
 
 describe("validateFunctionUsage", () => {
@@ -9,7 +9,7 @@ describe("validateFunctionUsage", () => {
     expect(result.reason).toContain("eval");
   });
   it("allows safe code", () => {
-    const code = 'const sum = 2 + 2;';
+    const code = "const sum = 2 + 2;";
     const result = validateFunctionUsage(code);
     expect(result.allowed).toBe(true);
     expect(result.reason).toBeUndefined();

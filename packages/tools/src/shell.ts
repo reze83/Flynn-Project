@@ -1,5 +1,12 @@
 /**
  * Shell command execution tool
+ *
+ * Security hardening includes:
+ * - Input length limits
+ * - Character encoding validation
+ * - Null byte injection prevention
+ * - Environment variable expansion blocking
+ * - Escape sequence sanitization
  */
 
 import { exec } from "node:child_process";
@@ -9,6 +16,20 @@ import { z } from "zod";
 
 // PERFORMANCE: Use promisified exec for non-blocking execution
 const execAsync = promisify(exec);
+
+// SECURITY: Maximum command length to prevent buffer overflow attacks
+const MAX_COMMAND_LENGTH = 4096;
+
+// SECURITY: Allowed characters in commands (ASCII printable minus dangerous chars)
+const SAFE_CHARS_REGEX = /^[\x20-\x7E\n\t]+$/;
+
+/**
+ * Check for null byte injection (security hardening)
+ * Moved from regex pattern to avoid Biome noControlCharactersInRegex error
+ */
+function containsNullByte(str: string): boolean {
+  return str.includes("\0");
+}
 
 // Safe command patterns (from flynn.policy.yaml)
 const ALLOWED_PATTERNS = [
@@ -57,6 +78,20 @@ const BLOCKED_PATTERNS = [
   /perl\s+-e/i, // Perl one-liners
   /ruby\s+-e/i, // Ruby one-liners
   /sh\s+-c/i, // Shell one-liners
+  // Additional hardening patterns
+  // Note: Null byte check moved to containsNullByte() function to avoid control char in regex
+  /\\x[0-9a-fA-F]{2}/, // Hex escape sequences
+  /\\u[0-9a-fA-F]{4}/, // Unicode escape sequences
+  /\$\{.*\}/, // Bash variable expansion ${...}
+  /\$[A-Za-z_][A-Za-z0-9_]*/, // Environment variable references
+  /;\s*;/, // Empty statement chains
+  /\|\|.*rm\s/, // OR chains with rm
+  /&&.*rm\s/, // AND chains with rm
+  />\s*\/proc\//i, // Write to /proc
+  />\s*\/sys\//i, // Write to /sys
+  /base64\s+-d/i, // Base64 decode (often used in exploits)
+  /xxd\s+-r/i, // Hex decode
+  /openssl\s+enc/i, // Encryption/decryption
 ];
 
 const inputSchema = z.object({
@@ -76,10 +111,52 @@ const outputSchema = z.object({
   blocked: z.boolean().optional(),
 });
 
+/**
+ * Sanitize and validate command input
+ */
+function sanitizeCommand(command: string): { sanitized: string; valid: boolean; reason?: string } {
+  // Check command length
+  if (command.length > MAX_COMMAND_LENGTH) {
+    return {
+      sanitized: "",
+      valid: false,
+      reason: `Command exceeds maximum length of ${MAX_COMMAND_LENGTH} characters`,
+    };
+  }
+
+  // Check for invalid characters (non-printable ASCII, control chars)
+  if (!SAFE_CHARS_REGEX.test(command)) {
+    return {
+      sanitized: "",
+      valid: false,
+      reason: "Command contains invalid characters (non-printable or control characters)",
+    };
+  }
+
+  // Normalize whitespace
+  const sanitized = command.trim().replace(/\s+/g, " ");
+
+  return { sanitized, valid: true };
+}
+
 function isCommandAllowed(command: string): { allowed: boolean; reason?: string } {
+  // SECURITY: Sanitize input first
+  const { sanitized, valid, reason } = sanitizeCommand(command);
+  if (!valid) {
+    return { allowed: false, reason };
+  }
+
+  // SECURITY: Check for null byte injection (moved from regex to avoid control char error)
+  if (containsNullByte(sanitized)) {
+    return {
+      allowed: false,
+      reason: "Command blocked: contains null byte injection attempt",
+    };
+  }
+
   // SECURITY: Always block dangerous patterns first (no bypass)
   for (const pattern of BLOCKED_PATTERNS) {
-    if (pattern.test(command)) {
+    if (pattern.test(sanitized)) {
       return {
         allowed: false,
         reason: "Command blocked: matches security pattern",
@@ -89,7 +166,7 @@ function isCommandAllowed(command: string): { allowed: boolean; reason?: string 
 
   // Check against allowed patterns (whitelist approach)
   for (const pattern of ALLOWED_PATTERNS) {
-    if (pattern.test(command)) {
+    if (pattern.test(sanitized)) {
       return { allowed: true };
     }
   }

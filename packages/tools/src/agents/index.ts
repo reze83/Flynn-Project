@@ -50,6 +50,9 @@ export {
   terraformExpert,
   kubernetesOperator,
   incidentResponder,
+  githubManager,
+  qaTester,
+  researchSpecialist,
 } from "./operations-agents.js";
 
 export {
@@ -79,6 +82,11 @@ export const AGENT_CONTEXTS: Record<string, AgentContext> = {
   // Codex Integration
   orchestrator: codexOrchestrator,
 };
+
+// Re-export utilities
+export { AgentFactory } from "./agent-factory.js";
+export type { AgentStep, AgentStepOptions, ValidationResult } from "./agent-factory.js";
+export { mapToolsToMcp, validateToolMappings, getAvailableToolCategories } from "./tool-mapper.js";
 
 /**
  * GLOBAL CONSTRAINT: Documentation requirement for optimization suggestions

@@ -3,15 +3,22 @@
  *
  * Enables delegation of tasks to OpenAI Codex CLI with proper context handoff.
  * Supports configurable paths, session management, and error recovery.
+ *
+ * P2 Features:
+ * - Streaming callbacks (onChunk, onProgress) for real-time feedback
+ * - Task chunking integration for complex tasks
+ * - Progress tracking with chunk information
  */
 
 import { execSync, spawn } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { createLogger } from "@flynn/core";
 import * as toml from "@iarna/toml";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+
 import {
   type HandoffFile,
   addTask,
@@ -21,6 +28,51 @@ import {
   updateSessionStatus,
   updateTask,
 } from "./handoff-protocol.js";
+import { type ChunkingResult, type TaskChunk, chunkTask, needsChunking } from "./task-chunker.js";
+
+const logger = createLogger("codex-delegate");
+
+// ============================================================================
+// Streaming Callbacks (P2 Feature)
+// ============================================================================
+
+/**
+ * Callback for streaming output chunks
+ */
+export type OnChunkCallback = (chunk: string, event?: ParsedCodexEvent) => void;
+
+/**
+ * Progress information during execution
+ */
+export interface ProgressInfo {
+  stage: "starting" | "running" | "completing";
+  turnCount: number;
+  elapsedMs: number;
+  eventsReceived: number;
+  lastEvent?: string;
+  chunkProgress?: {
+    currentChunk: number;
+    totalChunks: number;
+    currentChunkDescription: string;
+  };
+}
+
+/**
+ * Callback for progress updates
+ */
+export type OnProgressCallback = (progress: ProgressInfo) => void;
+
+/**
+ * Streaming configuration options
+ */
+export interface StreamingConfig {
+  /** Called for each output chunk received */
+  onChunk?: OnChunkCallback;
+  /** Called periodically with progress updates */
+  onProgress?: OnProgressCallback;
+  /** Minimum interval between progress callbacks (ms) */
+  progressIntervalMs?: number;
+}
 
 // JSONL Event types from Codex CLI
 interface CodexEvent {
@@ -65,6 +117,9 @@ type ParsedCodexEvent =
   | ItemCompletedEvent
   | TurnCompletedEvent
   | CodexEvent;
+
+// Re-export for external use
+export type { ParsedCodexEvent };
 
 // Codex config structure (from config.toml)
 interface CodexConfig {
@@ -197,8 +252,18 @@ const inputSchema = z.object({
   timeout: z
     .number()
     .optional()
-    .default(300000)
-    .describe("Timeout in milliseconds (default: 5 minutes)"),
+    .default(600000)
+    .describe("Timeout in milliseconds (default: 10 minutes)"),
+  enableChunking: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Enable automatic task chunking for complex tasks"),
+  maxChunkDurationMs: z
+    .number()
+    .optional()
+    .default(180000)
+    .describe("Maximum duration per chunk when chunking (default: 3 minutes)"),
   context: z
     .object({
       files: z.array(z.string()).optional(),
@@ -243,6 +308,15 @@ const outputSchema = z.object({
     .optional(),
   error: z.string().optional(),
   recoveryHint: z.string().optional(),
+  // P2: Chunking information
+  chunking: z
+    .object({
+      enabled: z.boolean(),
+      totalChunks: z.number(),
+      completedChunks: z.number(),
+      complexityScore: z.number(),
+    })
+    .optional(),
 });
 
 type CodexDelegateInput = z.infer<typeof inputSchema>;
@@ -282,7 +356,7 @@ function appendToLog(logFile: string, data: string): void {
 }
 
 /**
- * Execute Codex CLI with JSON output and real-time logging
+ * Execute Codex CLI with JSON output, real-time logging, and streaming support
  */
 async function executeCodex(
   codexPath: string,
@@ -291,6 +365,7 @@ async function executeCodex(
   timeout: number,
   sessionId?: string,
   sessionDir?: string,
+  streaming?: StreamingConfig,
 ): Promise<{
   success: boolean;
   output: string;
@@ -302,6 +377,30 @@ async function executeCodex(
     const args = ["exec", "--json", "--full-auto", "--skip-git-repo-check", task];
     let output = "";
     let errorOutput = "";
+
+    // Streaming state tracking
+    const startTime = Date.now();
+    let eventsReceived = 0;
+    let turnCount = 0;
+    let lastEventType: string | undefined;
+    let lastProgressTime = 0;
+    const progressIntervalMs = streaming?.progressIntervalMs ?? 1000;
+
+    // Helper to emit progress updates
+    const emitProgress = (stage: ProgressInfo["stage"]) => {
+      if (!streaming?.onProgress) return;
+      const now = Date.now();
+      if (stage === "running" && now - lastProgressTime < progressIntervalMs) return;
+      lastProgressTime = now;
+
+      streaming.onProgress({
+        stage,
+        turnCount,
+        elapsedMs: now - startTime,
+        eventsReceived,
+        lastEvent: lastEventType,
+      });
+    };
 
     // Set up log files for real-time monitoring if sessionId is provided
     let logFile: string | undefined;
@@ -321,6 +420,9 @@ async function executeCodex(
       appendToLog(logFile, `Working Directory: ${workingDir}\n`);
       appendToLog(logFile, `${"=".repeat(50)}\n\n`);
     }
+
+    // Emit starting progress
+    emitProgress("starting");
 
     const proc = spawn(codexPath, args, {
       cwd: workingDir,
@@ -349,6 +451,7 @@ async function executeCodex(
       });
     }, timeout);
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Event-driven callback with shared mutable state (output, eventsReceived, turnCount) - complexity inherent to streaming architecture
     proc.stdout?.on("data", (data: Buffer) => {
       const chunk = data.toString();
       output += chunk;
@@ -357,6 +460,32 @@ async function executeCodex(
       if (logFile) {
         appendToLog(logFile, chunk);
       }
+
+      // Streaming: Parse and emit events
+      if (streaming?.onChunk) {
+        // Try to parse as JSONL events
+        const lines = chunk.split("\n").filter((line) => line.trim());
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line) as ParsedCodexEvent;
+            eventsReceived++;
+            lastEventType = event.type;
+
+            // Track turn count
+            if (event.type === "turn.started") {
+              turnCount++;
+            }
+
+            streaming.onChunk(line, event);
+          } catch {
+            // Non-JSON line, emit as raw chunk
+            streaming.onChunk(line);
+          }
+        }
+      }
+
+      // Emit progress update
+      emitProgress("running");
     });
 
     proc.stderr?.on("data", (data: Buffer) => {
@@ -367,8 +496,14 @@ async function executeCodex(
       if (logFile) {
         appendToLog(logFile, `[STDERR] ${chunk}`);
       }
+
+      // Also stream stderr if callback exists
+      if (streaming?.onChunk) {
+        streaming.onChunk(`[STDERR] ${chunk}`);
+      }
     });
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Event callback handling completion with status updates, logging, and progress emission
     proc.on("close", (code) => {
       clearTimeout(timeoutId);
       const success = code === 0;
@@ -388,6 +523,9 @@ async function executeCodex(
         appendToLog(logFile, `Exit code: ${code}\n`);
         appendToLog(logFile, `Finished: ${new Date().toISOString()}\n`);
       }
+
+      // Emit completing progress
+      emitProgress("completing");
 
       resolve({
         success,
@@ -420,6 +558,181 @@ async function executeCodex(
       });
     });
   });
+}
+
+/**
+ * Result of chunked execution
+ */
+interface ChunkedExecutionResult {
+  success: boolean;
+  completedChunks: number;
+  totalChunks: number;
+  outputs: Array<{
+    chunkId: string;
+    success: boolean;
+    output: string;
+    error?: string;
+  }>;
+  aggregatedOutput: string;
+  errors: string[];
+}
+
+/**
+ * Execute a task in chunks with dependency ordering and streaming support
+ */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Orchestrates chunked execution with dependency tracking, parallel groups, and streaming - complexity inherent to task coordination
+async function executeChunkedTask(
+  codexPath: string,
+  chunkingResult: ChunkingResult,
+  workingDir: string,
+  chunkTimeout: number,
+  sessionId: string,
+  sessionDir: string,
+  streaming?: StreamingConfig,
+): Promise<ChunkedExecutionResult> {
+  const outputs: ChunkedExecutionResult["outputs"] = [];
+  const errors: string[] = [];
+  let completedChunks = 0;
+  const totalChunks = chunkingResult.chunks.length;
+
+  // Execute chunks in order (respecting execution groups)
+  for (const group of chunkingResult.executionOrder) {
+    // Execute chunks in this group (could be parallelized in future)
+    for (const chunkId of group) {
+      const chunk = chunkingResult.chunks.find((c) => c.id === chunkId);
+      if (!chunk) continue;
+
+      // Build context-aware task description
+      const chunkTask = buildChunkTaskDescription(chunk, outputs);
+
+      // Create wrapped streaming config that adds chunk progress info
+      const wrappedStreaming: StreamingConfig | undefined = streaming
+        ? {
+            onChunk: streaming.onChunk,
+            onProgress: streaming.onProgress
+              ? (progress: ProgressInfo) => {
+                  // Enhance progress with chunk information
+                  streaming.onProgress?.({
+                    ...progress,
+                    chunkProgress: {
+                      currentChunk: chunk.index + 1,
+                      totalChunks,
+                      currentChunkDescription: chunk.description,
+                    },
+                  });
+                }
+              : undefined,
+            progressIntervalMs: streaming.progressIntervalMs,
+          }
+        : undefined;
+
+      const result = await executeCodex(
+        codexPath,
+        chunkTask,
+        workingDir,
+        chunkTimeout,
+        `${sessionId}_chunk_${chunk.index}`,
+        sessionDir,
+        wrappedStreaming,
+      );
+
+      outputs.push({
+        chunkId: chunk.id,
+        success: result.success,
+        output: result.output,
+        error: result.error,
+      });
+
+      if (result.success) {
+        completedChunks++;
+      } else {
+        errors.push(`Chunk ${chunk.index + 1}/${totalChunks} failed: ${result.error}`);
+        // Continue with remaining chunks even if one fails
+      }
+    }
+  }
+
+  // Aggregate outputs
+  const aggregatedOutput = outputs
+    .filter((o) => o.success)
+    .map((o) => o.output)
+    .join("\n\n---\n\n");
+
+  return {
+    success: completedChunks === totalChunks,
+    completedChunks,
+    totalChunks,
+    outputs,
+    aggregatedOutput,
+    errors,
+  };
+}
+
+/**
+ * Build task description for a chunk with context from previous chunks
+ */
+function buildChunkTaskDescription(
+  chunk: TaskChunk,
+  previousOutputs: ChunkedExecutionResult["outputs"],
+): string {
+  const parts: string[] = [];
+
+  // Main task
+  parts.push(chunk.description);
+
+  // Add context from dependencies
+  if (chunk.dependencies.length > 0 && previousOutputs.length > 0) {
+    const depOutputs = previousOutputs.filter(
+      (o) => chunk.dependencies.includes(o.chunkId) && o.success,
+    );
+
+    if (depOutputs.length > 0) {
+      parts.push("\n\n## Context from previous steps:");
+      for (const dep of depOutputs) {
+        // Extract summary from output (first few lines or key events)
+        const summary = extractChunkSummary(dep.output);
+        if (summary) {
+          parts.push(`- Previous step completed: ${summary}`);
+        }
+      }
+    }
+  }
+
+  // Add file context if available
+  if (chunk.context.files && chunk.context.files.length > 0) {
+    parts.push(`\n\nRelevant files: ${chunk.context.files.join(", ")}`);
+  }
+
+  return parts.join("");
+}
+
+/**
+ * Extract summary from chunk output
+ */
+function extractChunkSummary(output: string): string {
+  // Try to extract from JSONL events
+  try {
+    const lines = output.trim().split("\n");
+    for (const line of lines.slice(-10)) {
+      try {
+        const event = JSON.parse(line) as ParsedCodexEvent;
+        if (event.type === "turn.completed") {
+          const turnEvent = event as TurnCompletedEvent;
+          if (turnEvent.summary) {
+            return turnEvent.summary;
+          }
+        }
+      } catch {
+        // Not JSON, ignore
+      }
+    }
+  } catch {
+    // Fallback: return first line
+  }
+
+  // Fallback: first meaningful line
+  const firstLine = output.trim().split("\n")[0];
+  return firstLine ? firstLine.substring(0, 100) : "completed";
 }
 
 /**
@@ -496,67 +809,69 @@ function handleConfigureOperation(operation: string, configPath: string): CodexD
   };
 }
 
+// ============================================================================
+// Extracted Helper Functions for handleStatusOperation
+// Pattern: Extract Method (Refactoring.Guru)
+// Purpose: Reduce cognitive complexity from 20 to ~8
+// ============================================================================
+
 /**
- * Handle status operation - now reads from live status file as well
+ * Live status structure from status file
  */
-function handleStatusOperation(
+interface LiveStatus {
+  status: "running" | "completed" | "failed" | "timeout";
+  timestamp: string;
+  details?: string;
+}
+
+/**
+ * Try to read live status from status file
+ * @returns LiveStatus if file exists and parses, undefined otherwise
+ */
+function tryReadLiveStatus(statusFile: string): LiveStatus | undefined {
+  if (!existsSync(statusFile)) {
+    return undefined;
+  }
+  try {
+    const statusContent = readFileSync(statusFile, "utf-8");
+    return JSON.parse(statusContent) as LiveStatus;
+  } catch {
+    logger.debug({ statusFile }, "Failed to parse status file");
+    return undefined;
+  }
+}
+
+/**
+ * Build response when we have live status but no session file
+ */
+function buildLiveStatusOnlyResponse(
   operation: string,
-  sessionId: string | undefined,
-  sessionDir: string,
+  sessionId: string,
+  liveStatus: LiveStatus,
+  outputLog: string,
+  statusFile: string,
 ): CodexDelegateOutput {
-  if (!sessionId) {
-    return {
-      success: false,
-      operation,
-      error: "Session ID required for status operation",
-    };
-  }
+  return {
+    success: true,
+    operation,
+    sessionId,
+    liveStatus,
+    logFile: existsSync(outputLog) ? outputLog : undefined,
+    statusFile: existsSync(statusFile) ? statusFile : undefined,
+    summary: `Live Status: ${liveStatus.status}${liveStatus.details ? ` - ${liveStatus.details}` : ""}`,
+  };
+}
 
-  const sessionPath = join(sessionDir, `${sessionId}.json`);
-  const { outputLog, statusFile } = getSessionLogPaths(sessionDir, sessionId);
-
-  // Check for live status file first (more up-to-date)
-  let liveStatus:
-    | {
-        status: "running" | "completed" | "failed" | "timeout";
-        timestamp: string;
-        details?: string;
-      }
-    | undefined;
-  if (existsSync(statusFile)) {
-    try {
-      const statusContent = readFileSync(statusFile, "utf-8");
-      liveStatus = JSON.parse(statusContent);
-    } catch {
-      // Ignore parse errors
-    }
-  }
-
-  // Check for session JSON file
-  if (!existsSync(sessionPath)) {
-    // If we have a live status but no session file, still return info
-    if (liveStatus) {
-      return {
-        success: true,
-        operation,
-        sessionId,
-        liveStatus,
-        logFile: existsSync(outputLog) ? outputLog : undefined,
-        statusFile: existsSync(statusFile) ? statusFile : undefined,
-        summary: `Live Status: ${liveStatus.status}${liveStatus.details ? ` - ${liveStatus.details}` : ""}`,
-      };
-    }
-    return {
-      success: false,
-      operation,
-      error: `Session not found: ${sessionId}`,
-    };
-  }
-
-  const sessionContent = readFileSync(sessionPath, "utf-8");
-  const handoff = parseHandoffFile(sessionContent);
-
-  // Combine handoff status with live status
+/**
+ * Build full status response with handoff data
+ */
+function buildFullStatusResponse(
+  operation: string,
+  handoff: HandoffFile,
+  liveStatus: LiveStatus | undefined,
+  outputLog: string,
+  statusFile: string,
+): CodexDelegateOutput {
   const handoffStatus = handoff.session.status;
   const effectiveStatus = liveStatus?.status || handoffStatus;
 
@@ -569,6 +884,51 @@ function handleStatusOperation(
     statusFile: existsSync(statusFile) ? statusFile : undefined,
     summary: `Status: ${effectiveStatus}, Tasks: ${handoff.tasks.length}${liveStatus ? ` (Live: ${liveStatus.status})` : ""}`,
   };
+}
+
+/**
+ * Handle status operation - now reads from live status file as well
+ *
+ * REFACTORED: Complexity reduced from 20 to ~8 using Extract Method pattern
+ * Source: https://refactoring.guru/extract-method
+ */
+function handleStatusOperation(
+  operation: string,
+  sessionId: string | undefined,
+  sessionDir: string,
+): CodexDelegateOutput {
+  // Guard clause: validate sessionId
+  if (!sessionId) {
+    return {
+      success: false,
+      operation,
+      error: "Session ID required for status operation",
+    };
+  }
+
+  const sessionPath = join(sessionDir, `${sessionId}.json`);
+  const { outputLog, statusFile } = getSessionLogPaths(sessionDir, sessionId);
+
+  // Try to read live status (extracted method)
+  const liveStatus = tryReadLiveStatus(statusFile);
+
+  // Handle case: no session file exists
+  if (!existsSync(sessionPath)) {
+    if (liveStatus) {
+      return buildLiveStatusOnlyResponse(operation, sessionId, liveStatus, outputLog, statusFile);
+    }
+    return {
+      success: false,
+      operation,
+      error: `Session not found: ${sessionId}`,
+    };
+  }
+
+  // Parse session file and build full response
+  const sessionContent = readFileSync(sessionPath, "utf-8");
+  const handoff = parseHandoffFile(sessionContent);
+
+  return buildFullStatusResponse(operation, handoff, liveStatus, outputLog, statusFile);
 }
 
 /**
@@ -686,8 +1046,227 @@ async function handleResumeOperation(
   };
 }
 
+// ============================================================================
+// Extracted Helper Functions for handleDelegateOperation
+// Pattern: Extract Method (Refactoring.Guru)
+// Purpose: Reduce cognitive complexity from 29 to ~10
+// ============================================================================
+
 /**
- * Handle delegate operation
+ * Context for delegation task
+ */
+interface TaskContext {
+  files?: string[];
+  requirements?: string;
+  constraints?: string[];
+}
+
+/**
+ * Execution result from Codex
+ */
+interface ExecutionResult {
+  success: boolean;
+  output: string;
+  error?: string;
+  logFile?: string;
+}
+
+/**
+ * Validate required delegation parameters
+ * @returns Error response if validation fails, null if valid
+ */
+function validateDelegationParams(
+  task: string | undefined,
+  codexPath: string | undefined,
+  operation: string,
+): CodexDelegateOutput | null {
+  if (!task) {
+    return {
+      success: false,
+      operation,
+      error: "Task description required for delegation",
+    };
+  }
+  if (!codexPath) {
+    return {
+      success: false,
+      operation,
+      error: "Codex CLI not found. Install with: npm install -g @openai/codex",
+      recoveryHint: "Install Codex CLI or provide codexPath parameter",
+    };
+  }
+  return null;
+}
+
+/**
+ * Determine if chunking should be used and get chunking result
+ */
+function determineChunking(
+  task: string,
+  enableChunking: boolean,
+  timeout: number,
+  maxChunkDurationMs: number,
+): { useChunking: boolean; chunkingResult: ChunkingResult | null } {
+  if (!enableChunking || !needsChunking(task, timeout)) {
+    return { useChunking: false, chunkingResult: null };
+  }
+
+  const chunkingResult = chunkTask(task, {
+    maxChunkDurationMs,
+    complexityThreshold: 50,
+  });
+
+  return {
+    useChunking: chunkingResult.requiresChunking,
+    chunkingResult,
+  };
+}
+
+/**
+ * Add task to handoff based on chunking decision
+ */
+function addTaskToHandoff(
+  handoff: HandoffFile,
+  task: string,
+  useChunking: boolean,
+  chunkingResult: ChunkingResult | null,
+  context?: TaskContext,
+): HandoffFile {
+  const taskDescription = useChunking && chunkingResult ? `[CHUNKED] ${task}` : task;
+
+  const requirements =
+    useChunking && chunkingResult
+      ? `Chunked into ${chunkingResult.chunks.length} subtasks. ${context?.requirements || ""}`
+      : context?.requirements;
+
+  return addTask(handoff, {
+    description: taskDescription,
+    assignedTo: "codex",
+    priority: "medium",
+    inputContext: {
+      files: context?.files || [],
+      codeSnippets: [],
+      requirements,
+      constraints: context?.constraints || [],
+      dependencies: [],
+    },
+  });
+}
+
+/**
+ * Execute task with or without chunking
+ */
+async function executeWithStrategy(
+  codexPath: string,
+  task: string,
+  workingDir: string,
+  sessionId: string,
+  sessionDir: string,
+  timeout: number,
+  maxChunkDurationMs: number,
+  useChunking: boolean,
+  chunkingResult: ChunkingResult | null,
+): Promise<{ result: ExecutionResult; chunkingInfo: CodexDelegateOutput["chunking"] }> {
+  if (useChunking && chunkingResult) {
+    const chunkedResult = await executeChunkedTask(
+      codexPath,
+      chunkingResult,
+      workingDir,
+      maxChunkDurationMs,
+      sessionId,
+      sessionDir,
+    );
+
+    return {
+      result: {
+        success: chunkedResult.success,
+        output: chunkedResult.aggregatedOutput,
+        error:
+          chunkedResult.errors.length > 0
+            ? `${chunkedResult.completedChunks}/${chunkedResult.totalChunks} chunks completed. Errors: ${chunkedResult.errors.join("; ")}`
+            : undefined,
+      },
+      chunkingInfo: {
+        enabled: true,
+        totalChunks: chunkedResult.totalChunks,
+        completedChunks: chunkedResult.completedChunks,
+        complexityScore: chunkingResult.complexity.score,
+      },
+    };
+  }
+
+  const result = await executeCodex(codexPath, task, workingDir, timeout, sessionId, sessionDir);
+
+  return {
+    result,
+    chunkingInfo: {
+      enabled: false,
+      totalChunks: 1,
+      completedChunks: result.success ? 1 : 0,
+      complexityScore: 0,
+    },
+  };
+}
+
+/**
+ * Build success response for delegation
+ */
+function buildDelegateSuccessResponse(
+  operation: string,
+  handoff: HandoffFile,
+  result: ExecutionResult,
+  chunkingInfo: CodexDelegateOutput["chunking"],
+  outputLog: string,
+  statusFilePath: string,
+  handoffPath: string,
+  workingDir: string,
+): CodexDelegateOutput {
+  const events = parseJsonlEvents(result.output);
+
+  return {
+    success: true,
+    operation,
+    sessionId: handoff.session.id,
+    logFile: existsSync(outputLog) ? outputLog : undefined,
+    statusFile: existsSync(statusFilePath) ? statusFilePath : undefined,
+    events: events.map((e) => ({ type: e.type, timestamp: e.timestamp })),
+    summary: extractSummary(events),
+    handoffFile: join(workingDir, handoffPath),
+    chunking: chunkingInfo,
+  };
+}
+
+/**
+ * Build failure response for delegation
+ */
+function buildDelegateFailureResponse(
+  operation: string,
+  handoff: HandoffFile,
+  result: ExecutionResult,
+  chunkingInfo: CodexDelegateOutput["chunking"],
+  outputLog: string,
+  statusFilePath: string,
+  handoffPath: string,
+  workingDir: string,
+): CodexDelegateOutput {
+  return {
+    success: false,
+    operation,
+    sessionId: handoff.session.id,
+    logFile: existsSync(outputLog) ? outputLog : undefined,
+    statusFile: existsSync(statusFilePath) ? statusFilePath : undefined,
+    error: result.error,
+    recoveryHint: `Check log file for details: ${outputLog}`,
+    handoffFile: join(workingDir, handoffPath),
+    chunking: chunkingInfo,
+  };
+}
+
+/**
+ * Handle delegate operation with P2 chunking support
+ *
+ * REFACTORED: Complexity reduced from 29 to ~10 using Extract Method pattern
+ * Source: https://refactoring.guru/extract-method
  */
 async function handleDelegateOperation(
   operation: string,
@@ -698,78 +1277,67 @@ async function handleDelegateOperation(
   sessionDir: string,
   outputDir: string,
   timeout: number,
-  context?: {
-    files?: string[];
-    requirements?: string;
-    constraints?: string[];
-  },
+  enableChunking: boolean,
+  maxChunkDurationMs: number,
+  context?: TaskContext,
 ): Promise<CodexDelegateOutput> {
-  if (!task) {
-    return {
-      success: false,
-      operation,
-      error: "Task description required for delegation",
-    };
+  // 1. Validate parameters (Guard Clauses)
+  const validationError = validateDelegationParams(task, codexPath, operation);
+  if (validationError) {
+    return validationError;
   }
 
-  if (!codexPath) {
-    return {
-      success: false,
-      operation,
-      error: "Codex CLI not found. Install with: npm install -g @openai/codex",
-      recoveryHint: "Install Codex CLI or provide codexPath parameter",
-    };
-  }
+  // After validation, task and codexPath are guaranteed to be defined
+  const validatedTask = task as string;
+  const validatedCodexPath = codexPath as string;
 
+  // 2. Determine chunking strategy
+  const { useChunking, chunkingResult } = determineChunking(
+    validatedTask,
+    enableChunking,
+    timeout,
+    maxChunkDurationMs,
+  );
+
+  // 3. Initialize handoff
   let handoff = getOrCreateHandoff(handoffPath, workingDir);
   handoff = updateSessionStatus(handoff, "active");
-  handoff = addTask(handoff, {
-    description: task,
-    assignedTo: "codex",
-    priority: "medium",
-    inputContext: {
-      files: context?.files || [],
-      codeSnippets: [],
-      requirements: context?.requirements,
-      constraints: context?.constraints || [],
-      dependencies: [],
-    },
-  });
+  handoff = addTaskToHandoff(handoff, validatedTask, useChunking, chunkingResult, context);
 
   const currentTask = handoff.tasks[handoff.tasks.length - 1];
   if (!currentTask) {
-    return {
-      success: false,
-      operation,
-      error: "Failed to create task",
-    };
+    return { success: false, operation, error: "Failed to create task" };
   }
 
   handoff = updateTask(handoff, currentTask.id, { status: "in_progress" });
 
+  // 4. Persist handoff state
   saveHandoff(handoff, handoffPath, workingDir);
-
   ensureDir(sessionDir);
   const sessionPath = join(sessionDir, `${handoff.session.id}.json`);
   writeFileSync(sessionPath, serializeHandoffFile(handoff), "utf-8");
-
   ensureDir(outputDir);
 
-  const result = await executeCodex(
-    codexPath,
-    task,
+  // 5. Execute task
+  const { result, chunkingInfo } = await executeWithStrategy(
+    validatedCodexPath,
+    validatedTask,
     workingDir,
-    timeout,
     handoff.session.id,
     sessionDir,
+    timeout,
+    maxChunkDurationMs,
+    useChunking,
+    chunkingResult,
   );
 
-  // Get log file paths
+  // 6. Get log paths
   const { outputLog, statusFile: statusFilePath } = getSessionLogPaths(
     sessionDir,
     handoff.session.id,
   );
 
+  // 7. Update handoff and return response
   if (result.success) {
     const events = parseJsonlEvents(result.output);
     handoff = updateTask(handoff, currentTask.id, {
@@ -783,22 +1351,22 @@ async function handleDelegateOperation(
       },
     });
     handoff = updateSessionStatus(handoff, "completed");
-
     saveHandoff(handoff, handoffPath, workingDir);
     writeFileSync(sessionPath, serializeHandoffFile(handoff), "utf-8");
 
-    return {
-      success: true,
+    return buildDelegateSuccessResponse(
       operation,
-      sessionId: handoff.session.id,
-      logFile: existsSync(outputLog) ? outputLog : undefined,
-      statusFile: existsSync(statusFilePath) ? statusFilePath : undefined,
-      events: events.map((e) => ({ type: e.type, timestamp: e.timestamp })),
-      summary: extractSummary(events),
-      handoffFile: join(workingDir, handoffPath),
-    };
+      handoff,
+      result,
+      chunkingInfo,
+      outputLog,
+      statusFilePath,
+      handoffPath,
+      workingDir,
+    );
   }
 
+  // 8. Handle failure
   handoff = updateTask(handoff, currentTask.id, {
     status: "failed",
     outputContext: {
@@ -809,20 +1377,19 @@ async function handleDelegateOperation(
     },
   });
   handoff = updateSessionStatus(handoff, "failed");
-
   saveHandoff(handoff, handoffPath, workingDir);
   writeFileSync(sessionPath, serializeHandoffFile(handoff), "utf-8");
 
-  return {
-    success: false,
+  return buildDelegateFailureResponse(
     operation,
-    sessionId: handoff.session.id,
-    logFile: existsSync(outputLog) ? outputLog : undefined,
-    statusFile: existsSync(statusFilePath) ? statusFilePath : undefined,
-    error: result.error,
-    recoveryHint: `Check log file for details: ${outputLog}`,
-    handoffFile: join(workingDir, handoffPath),
-  };
+    handoff,
+    result,
+    chunkingInfo,
+    outputLog,
+    statusFilePath,
+    handoffPath,
+    workingDir,
+  );
 }
 
 export const codexDelegateTool = createTool({
@@ -845,7 +1412,9 @@ export const codexDelegateTool = createTool({
       sessionDir = defaults.sessionDir,
       handoffPath = defaults.handoffPath,
       sessionId,
-      timeout = 300000,
+      timeout = 600000,
+      enableChunking = true,
+      maxChunkDurationMs = 180000,
       context,
     } = input;
 
@@ -880,6 +1449,8 @@ export const codexDelegateTool = createTool({
           sessionDir,
           outputDir,
           timeout,
+          enableChunking,
+          maxChunkDurationMs,
           context,
         );
       }

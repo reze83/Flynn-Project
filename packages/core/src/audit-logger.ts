@@ -10,6 +10,9 @@
 
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { createLogger } from "./logger.js";
+
+const logger = createLogger("audit-logger");
 
 // Determine the directory for audit logs. Users can override this via
 // the FLYNN_CACHE_DIR environment variable to place logs elsewhere.
@@ -36,9 +39,10 @@ export function logAudit(event: string, details: unknown): void {
       event,
       details,
     });
-    appendFileSync(auditFile, entry + "\n");
-  } catch {
-    // Swallow any filesystem errors to ensure audit logging never
-    // interrupts core functionality.
+    appendFileSync(auditFile, `${entry}\n`);
+  } catch (error) {
+    // Log but don't throw - audit logging should never interrupt core functionality
+    // This helps with debugging while keeping the non-blocking behavior
+    logger.debug({ error, event }, "Failed to write audit log entry");
   }
 }

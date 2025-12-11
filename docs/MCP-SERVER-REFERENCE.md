@@ -6,6 +6,7 @@ The servers we actually use and recommend.
 
 | Server | Purpose | Needs API key? |
 |--------|---------|----------------|
+| Flynn | AI agent orchestration, workflows, task routing | yes (`ANTHROPIC_API_KEY`) |
 | Serena | Local code analysis, symbol navigation, project memory | no |
 | Context7 | Fetch library/API documentation from the web | yes (`CONTEXT7_API_KEY`) |
 | Exa | Web search, deep research, crawling, code-context search | yes (`EXA_API_KEY`) |
@@ -13,7 +14,6 @@ The servers we actually use and recommend.
 | Mem0 | Persistent storage for user/project knowledge | yes (`MEM0_API_KEY`) |
 | Filesystem | Read/write/watch files in the project | no |
 | Git | Local Git operations (status, diff, commit, branch) | no |
-| SQLite | SQL queries and schema inspection on local DB files | no |
 | Puppeteer | Headless browser for screenshots, scraping, DOM checks | no |
 | Docker | Manage local containers, logs, and images | no |
 | GitHub | Issues/PRs/reviews/actions via GitHub API | yes (`GITHUB_TOKEN`) |
@@ -22,6 +22,7 @@ The servers we actually use and recommend.
 
 Use **Serena** when you need code-aware navigation/memory; use **Filesystem** for plain file I/O.
 
+- **Flynn:** route-task, orchestrate, get-agent-context, list-workflows, heal-error, analytics, git-ops, file-ops, shell, get-skill, list-skills
 - **Serena:** find_symbol, references, project_memory (plus code-aware read_file/ls)
 - **Context7:** get-library-docs, resolve-library-id
 - **Exa:** get_code_context_exa, web_search_exa, deep_search_exa, company_research, crawling/crawling_exa, linkedin_search, deep_researcher_start, deep_researcher_check
@@ -29,13 +30,13 @@ Use **Serena** when you need code-aware navigation/memory; use **Filesystem** fo
 - **Mem0:** memory_write, memory_search (server-specific naming)
 - **Filesystem:** read_file, write_file, list, stat, watch (plain I/O)
 - **Git:** git_status, git_diff_unstaged/git_diff, git_log, git_create_branch, git_commit (varies by version)
-- **SQLite:** execute_sql, list_tables, describe_table
 - **Puppeteer:** open_page/puppeteer_navigate, screenshot/puppeteer_screenshot, evaluate/puppeteer_evaluate, click, type (varies by version)
 - **Docker:** list-containers, get-logs, create-container, deploy-compose (plus start/stop/exec per version)
 - **GitHub:** search_issues, list_prs, get_pr, create_comment, workflows (permission-dependent)
 
 ## Install Commands
 
+- Flynn: `node $FLYNN_PROJECT_PATH/apps/server/dist/server.js` (requires build: `pnpm run build`)
 - Serena: `uvx --from git+https://github.com/oraios/serena serena start-mcp-server`
 - Context7: `npx -y @upstash/context7-mcp`
 - Exa: `npx -y exa-mcp-server tools=get_code_context_exa,web_search_exa,deep_search_exa,company_research,crawling,linkedin_search,deep_researcher_start,deep_researcher_check`
@@ -43,7 +44,6 @@ Use **Serena** when you need code-aware navigation/memory; use **Filesystem** fo
 - Mem0: `uvx mem0-mcp-server`
 - Filesystem: `npx -y @modelcontextprotocol/server-filesystem <workspace-root>`
 - Git: `npx -y @modelcontextprotocol/server-git`
-- SQLite: `npx -y @modelcontextprotocol/server-sqlite /path/to/db.sqlite`
 - Puppeteer: `npx -y @modelcontextprotocol/server-puppeteer`
 - Docker: `npx -y @quantgeekdev/docker-mcp`
 - GitHub: `npx -y @modelcontextprotocol/server-github`
@@ -53,6 +53,11 @@ Use **Serena** when you need code-aware navigation/memory; use **Filesystem** fo
 ```json
 {
   "mcpServers": {
+    "flynn": {
+      "command": "node",
+      "args": ["/PATH/TO/Flynn-Project/apps/server/dist/server.js"],
+      "env": { "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}" }
+    },
     "serena": {
       "command": "uvx",
       "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"]
@@ -84,10 +89,6 @@ Use **Serena** when you need code-aware navigation/memory; use **Filesystem** fo
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-git"]
     },
-    "sqlite": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sqlite", "/path/to/db.sqlite"]
-    },
     "puppeteer": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
@@ -107,5 +108,6 @@ Use **Serena** when you need code-aware navigation/memory; use **Filesystem** fo
 
 ---
 
-*Last updated: 2025-12-09*
+*Last updated: 2025-12-11*
 *Created for: Flynn-Project*
+*Total MCP Servers: 11 (SQLite removed - no database in use)*

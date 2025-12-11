@@ -3,9 +3,70 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, isAbsolute, normalize, resolve } from "node:path";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+
+/**
+ * SECURITY: Validate path against traversal attacks
+ * Returns normalized path if safe, throws if unsafe
+ */
+function validatePath(
+  inputPath: string,
+  baseDir?: string,
+): { safe: boolean; normalizedPath: string; error?: string } {
+  // Reject null bytes (path truncation attack)
+  if (inputPath.includes("\0")) {
+    return { safe: false, normalizedPath: "", error: "Path contains null bytes" };
+  }
+
+  // Get the effective base directory
+  const effectiveBase = baseDir || process.cwd();
+
+  // Normalize and resolve the path
+  const normalizedPath = normalize(inputPath);
+  const resolvedPath = isAbsolute(normalizedPath)
+    ? normalizedPath
+    : resolve(effectiveBase, normalizedPath);
+
+  // Check for path traversal patterns
+  if (normalizedPath.includes("..")) {
+    // Verify the resolved path is still within allowed boundaries
+    const resolvedBase = resolve(effectiveBase);
+    if (!resolvedPath.startsWith(resolvedBase)) {
+      return {
+        safe: false,
+        normalizedPath: "",
+        error: `Path traversal detected: ${inputPath} resolves outside of allowed directory`,
+      };
+    }
+  }
+
+  // Block access to sensitive system paths
+  const sensitivePaths = [
+    "/etc/passwd",
+    "/etc/shadow",
+    "/etc/hosts",
+    "/.ssh/",
+    "/.gnupg/",
+    "/.aws/",
+    "/proc/",
+    "/sys/",
+    "/dev/",
+  ];
+
+  for (const sensitive of sensitivePaths) {
+    if (resolvedPath.includes(sensitive)) {
+      return {
+        safe: false,
+        normalizedPath: "",
+        error: `Access to sensitive path blocked: ${sensitive}`,
+      };
+    }
+  }
+
+  return { safe: true, normalizedPath: resolvedPath };
+}
 
 // Use simple object schema instead of discriminatedUnion for MCP compatibility
 const inputSchema = z.object({
@@ -47,16 +108,27 @@ export const fileOpsTool = createTool({
     const { operation, path, content, createDirs = true, recursive = false } = input;
 
     try {
+      // SECURITY: Validate path before any operation
+      const pathValidation = validatePath(path);
+      if (!pathValidation.safe) {
+        return {
+          success: false,
+          operation,
+          error: pathValidation.error || "Invalid path",
+        };
+      }
+      const safePath = pathValidation.normalizedPath;
+
       switch (operation) {
         case "read": {
-          if (!existsSync(path)) {
+          if (!existsSync(safePath)) {
             return {
               success: false,
               operation,
               error: `File not found: ${path}`,
             };
           }
-          const fileContent = readFileSync(path, "utf-8");
+          const fileContent = readFileSync(safePath, "utf-8");
           return {
             success: true,
             operation,
@@ -73,12 +145,12 @@ export const fileOpsTool = createTool({
             };
           }
           if (createDirs) {
-            const dir = dirname(path);
+            const dir = dirname(safePath);
             if (!existsSync(dir)) {
               mkdirSync(dir, { recursive: true });
             }
           }
-          writeFileSync(path, content, "utf-8");
+          writeFileSync(safePath, content, "utf-8");
           return {
             success: true,
             operation,
@@ -90,12 +162,12 @@ export const fileOpsTool = createTool({
           return {
             success: true,
             operation,
-            exists: existsSync(path),
+            exists: existsSync(safePath),
           };
         }
 
         case "list": {
-          if (!existsSync(path)) {
+          if (!existsSync(safePath)) {
             return {
               success: false,
               operation,
@@ -124,7 +196,7 @@ export const fileOpsTool = createTool({
             }
           }
 
-          listDir(path);
+          listDir(safePath);
 
           return {
             success: true,

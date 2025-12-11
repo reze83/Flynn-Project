@@ -12,8 +12,11 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import { join } from "node:path";
+import { createLogger } from "@flynn/core";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+
+const logger = createLogger("health-check");
 
 /**
  * SECURITY: Safe JSON parse that prevents prototype pollution
@@ -71,7 +74,12 @@ function runCommand(command: string): { success: boolean; output: string } {
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
     return { success: true, output };
-  } catch {
+  } catch (error) {
+    // Log command failures for debugging visibility
+    logger.debug(
+      { command, error: error instanceof Error ? error.message : String(error) },
+      "Command failed",
+    );
     return { success: false, output: "" };
   }
 }

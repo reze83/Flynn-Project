@@ -7,11 +7,11 @@
  * The validator comes from the core policy module【430188905619224†L703-L713】.
  */
 
-import { Command } from "commander";
-import chalk from "chalk";
-import prompts from "prompts";
+import { readFileSync } from "node:fs";
 import { validateFunctionUsage } from "@flynn/core";
-import { readFileSync } from "fs";
+import chalk from "chalk";
+import { Command } from "commander";
+import prompts from "prompts";
 
 export const scanCommand = new Command("scan")
   .description("Scan a JS/TS file for dangerous function usage")
@@ -36,9 +36,7 @@ export const scanCommand = new Command("scan")
       if (result.allowed) {
         console.log(chalk.green(`No dangerous functions detected in ${filePath}`));
       } else {
-        console.log(
-          chalk.red(`Dangerous function detected in ${filePath}: ${result.reason}`),
-        );
+        console.log(chalk.red(`Dangerous function detected in ${filePath}: ${result.reason}`));
       }
     } catch (err) {
       console.error(chalk.red(`Failed to read file ${filePath}: ${(err as Error).message}`));

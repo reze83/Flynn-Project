@@ -10,13 +10,13 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { analyticsCommand } from "./commands/analytics.js";
+import { cacheCommand } from "./commands/cache.js";
 import { healthCommand } from "./commands/health.js";
 import { monitorCommand } from "./commands/monitor.js";
 import { pluginsCommand } from "./commands/plugins.js";
-import { setupCommand } from "./commands/setup.js";
 import { runCommand } from "./commands/run.js";
 import { scanCommand } from "./commands/scan.js";
-import { cacheCommand } from "./commands/cache.js";
+import { setupCommand } from "./commands/setup.js";
 
 const VERSION = "1.0.0";
 

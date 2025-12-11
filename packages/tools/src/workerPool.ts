@@ -21,19 +21,18 @@ export type TaskFunction<T = unknown> = () => Promise<T>;
  * @param poolSize - Maximum number of concurrent tasks
  * @returns Promise that resolves with an array of results
  */
-export async function runTasksInPool<T>(
-  tasks: TaskFunction<T>[],
-  poolSize: number,
-): Promise<T[]> {
+export async function runTasksInPool<T>(tasks: TaskFunction<T>[], poolSize: number): Promise<T[]> {
   const results: Promise<T>[] = new Array(tasks.length);
   let index = 0;
 
   async function runNext(): Promise<void> {
     const current = index++;
     if (current >= tasks.length) return;
+    const task = tasks[current];
+    if (!task) return;
     try {
       // Execute the task and store the resulting promise at its index
-      results[current] = tasks[current]();
+      results[current] = task();
     } catch (err) {
       // In case the task function throws synchronously, convert to rejected promise
       results[current] = Promise.reject(err);

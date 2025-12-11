@@ -2,6 +2,12 @@
  * Task Router Tool
  * Rule-based routing without LLM calls - no API key required
  * PERFORMANCE: Uses pre-built trigger index for O(1) lookups
+ *
+ * @deprecated Prefer using `orchestrate` tool which provides:
+ * - Multi-agent workflow support
+ * - Parallel execution optimization
+ * - Better template detection
+ * This tool remains for single-agent quick routing.
  */
 
 import { createTool } from "@mastra/core/tools";

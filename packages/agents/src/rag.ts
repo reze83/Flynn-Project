@@ -4,9 +4,9 @@
  * NO API KEY REQUIRED - uses local Hugging Face Transformers.js embeddings
  */
 
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { createLogger, getDataDir, logAudit } from "@flynn/core";
+import { createLogger, getDataDir, logAudit, safeJsonParse } from "@flynn/core";
 import { LibSQLVector } from "@mastra/libsql";
 import { embed, embedMany, getEmbeddingDimensions } from "./embeddings.js";
 
@@ -22,7 +22,7 @@ let vectorStore: LibSQLVector | null = null;
 // persists in the `.flynn_cache` directory (overridable via FLYNN_CACHE_DIR).
 const RAG_CACHE_DIR: string = process.env.FLYNN_CACHE_DIR || ".flynn_cache";
 const RAG_CACHE_FILE: string = join(RAG_CACHE_DIR, "rag-search.json");
-const CACHE_TTL_MS: number = parseInt(process.env.FLYNN_CACHE_TTL || "0", 10) || 0;
+const CACHE_TTL_MS: number = Number.parseInt(process.env.FLYNN_CACHE_TTL || "0", 10) || 0;
 let ragCacheLoaded = false;
 // The cache maps keys to objects containing a timestamp and the search results
 let ragCache: Record<string, { timestamp: number; results: SearchResult[] }> = {};
@@ -31,11 +31,16 @@ function loadRagCache(): void {
   if (ragCacheLoaded) return;
   try {
     if (existsSync(RAG_CACHE_FILE)) {
-      const data = JSON.parse(readFileSync(RAG_CACHE_FILE, "utf8"));
+      // SECURITY: Use safeJsonParse to prevent prototype pollution
+      const data = safeJsonParse<Record<string, { timestamp: number; results: SearchResult[] }>>(
+        readFileSync(RAG_CACHE_FILE, "utf8"),
+      );
       ragCache = data;
+      logger.debug({ entries: Object.keys(data).length }, "RAG cache loaded from disk");
     }
-  } catch {
-    // ignore corrupt cache
+  } catch (error) {
+    // Log but don't fail - cache will start empty
+    logger.debug({ error }, "Failed to load RAG cache");
     ragCache = {};
   } finally {
     ragCacheLoaded = true;

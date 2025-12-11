@@ -2,11 +2,13 @@
  * Project analysis tool
  */
 
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
-import { logAudit } from "@flynn/core";
+import { createLogger, logAudit } from "@flynn/core";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+
+const logger = createLogger("project-analysis");
 
 const inputSchema = z.object({
   projectPath: z.string().describe("Path to the project directory"),
@@ -62,8 +64,9 @@ export const analyzeProjectTool = createTool({
         if (existsSync(CACHE_FILE)) {
           return JSON.parse(readFileSync(CACHE_FILE, "utf8"));
         }
-      } catch {
-        // Ignore parse errors and return empty cache
+      } catch (error) {
+        // Log parse errors for debugging visibility
+        logger.debug({ cacheFile: CACHE_FILE, error }, "Failed to load cache");
       }
       return {};
     }
@@ -73,8 +76,9 @@ export const analyzeProjectTool = createTool({
           mkdirSync(CACHE_DIR, { recursive: true });
         }
         writeFileSync(CACHE_FILE, JSON.stringify(cache));
-      } catch {
-        // Swallow write errors to avoid interrupting analysis
+      } catch (error) {
+        // Log write errors for debugging visibility
+        logger.debug({ cacheFile: CACHE_FILE, error }, "Failed to save cache");
       }
     }
     // Create a cache key based on project path and scan depth

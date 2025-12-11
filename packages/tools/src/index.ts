@@ -22,6 +22,19 @@ export {
   type AgentContext,
 } from "./agent-contexts.js";
 
+// Refactoring Loop - Documentation Enforcement
+export {
+  validateDocumentation,
+  createContext7Source,
+  createExaSource,
+  getRefactoringLoopWorkflow,
+  formatRefactoringSuggestion,
+  type RefactoringSuggestion,
+  type DocumentationSource,
+  type DocumentationVerificationResult,
+  type RefactoringLoopState,
+} from "./refactoring-loop.js";
+
 // Anthropic tool wrappers with Flynn policy enforcement
 export { flynnBashTool, createFlynnBashTool } from "./anthropic-bash-wrapper.js";
 export { flynnTextEditorTools, createFlynnTextEditorTools } from "./anthropic-editor-wrapper.js";
@@ -72,11 +85,50 @@ export {
 } from "./mcp-registry.js";
 
 // Codex Integration
-export { codexDelegateTool } from "./codex-delegate.js";
+export {
+  codexDelegateTool,
+  type OnChunkCallback,
+  type OnProgressCallback,
+  type ProgressInfo,
+  type StreamingConfig,
+  type ParsedCodexEvent,
+} from "./codex-delegate.js";
 export { codexMdGeneratorTool } from "./codex-md-generator.js";
+
+// P2 Features: Caching and Task Chunking
+export {
+  SimpleCache,
+  agentContextCache,
+  skillCache,
+  projectAnalysisCache,
+  workflowCache,
+  mcpToolCache,
+  clearAllCaches,
+  getAllCacheStats,
+  cleanupAllCaches,
+  generateCacheKey,
+  type CacheStats,
+} from "./cache.js";
+
+export {
+  analyzeTaskComplexity,
+  chunkTask,
+  estimateTaskDuration,
+  identifySubtasks,
+  needsChunking,
+  chunkTaskInputSchema,
+  chunkTaskOutputSchema,
+  type ComplexityLevel,
+  type ComplexityAnalysis,
+  type TaskChunk,
+  type ChunkingResult,
+  type ChunkerConfig,
+} from "./task-chunker.js";
 
 // Performance profiling tool - allows measurement of function execution time
 export { performanceProfilerTool } from "./performance-profiler.js";
+
+// Refactoring Loop - Automated Agent/MCP/Workflow optimization (moved above after AGENT_CONTEXTS)
 export {
   HandoffFileSchema,
   createHandoffFile,

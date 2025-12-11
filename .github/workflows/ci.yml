@@ -134,3 +134,33 @@ jobs:
 
       - name: Run Python tests
         run: uv run pytest -m "not slow" -v
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        run: |
+          echo "Checking for critical security patterns..."
+          ! grep -r "eval(" --include="*.ts" --include="*.js" packages/ apps/ || echo "Found eval usage - review required"
+          ! grep -r "child_process.exec" --include="*.ts" --include="*.js" packages/ apps/ | grep -v "shell.ts" || echo "Found exec usage outside shell.ts - review required"

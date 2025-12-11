@@ -20,7 +20,8 @@
   "dependencies": {
     "@flynn/core": "workspace:*",
     "@flynn/tools": "workspace:*",
-    "@mastra/mcp": "^0.14.0"
+    "@mastra/mcp": "^0.14.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

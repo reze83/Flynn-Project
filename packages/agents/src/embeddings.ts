@@ -3,9 +3,9 @@
  * NO API KEY REQUIRED - runs entirely locally
  */
 
-import { createLogger, logAudit } from "@flynn/core";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createLogger, logAudit, safeJsonParse } from "@flynn/core";
 import type { FeatureExtractionPipeline } from "@huggingface/transformers";
 
 const logger = createLogger("embeddings");
@@ -19,10 +19,100 @@ const EMBEDDING_CACHE_FILE: string = join(CACHE_DIR, "embeddings.json");
 // Flag to ensure the cache is loaded from disk only once per runtime.
 let cacheLoaded = false;
 
-// Simple in-memory cache for embedding results. Caches results for identical
-// input strings to avoid recomputing embeddings. The key is the exact text,
-// and the value is the resulting embedding array.
-const embeddingCache: Map<string, number[]> = new Map();
+// PERFORMANCE: LRU cache configuration
+const MAX_CACHE_SIZE = 1000; // Maximum number of cached embeddings
+const DEBOUNCE_INTERVAL_MS = 5000; // Save cache every 5 seconds max
+
+// Simple in-memory cache for embedding results with LRU tracking.
+// The key is the exact text, and the value includes the embedding and last access time.
+interface CacheEntry {
+  embedding: number[];
+  lastAccess: number;
+}
+const embeddingCache: Map<string, CacheEntry> = new Map();
+
+// PERFORMANCE: Debounced cache persistence
+let savePending = false;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let isDirty = false;
+
+/**
+ * Schedule a debounced cache save
+ * PERFORMANCE: Prevents synchronous writes on every embedding
+ */
+function scheduleCacheSave(): void {
+  isDirty = true;
+  if (savePending) return;
+
+  savePending = true;
+  saveTimer = setTimeout(() => {
+    saveCacheNow();
+    savePending = false;
+    saveTimer = null;
+  }, DEBOUNCE_INTERVAL_MS);
+}
+
+/**
+ * Force immediate cache save (for cleanup/shutdown)
+ */
+function saveCacheNow(): void {
+  if (!isDirty) return;
+  try {
+    if (!existsSync(CACHE_DIR)) {
+      mkdirSync(CACHE_DIR, { recursive: true });
+    }
+    const obj: Record<string, number[]> = {};
+    for (const [key, entry] of embeddingCache.entries()) {
+      obj[key] = entry.embedding;
+    }
+    writeFileSync(EMBEDDING_CACHE_FILE, JSON.stringify(obj));
+    isDirty = false;
+    logger.debug({ entries: embeddingCache.size }, "Embedding cache saved to disk");
+  } catch (error) {
+    logger.debug({ error }, "Failed to save embedding cache");
+  }
+}
+
+/**
+ * PERFORMANCE: Evict oldest entries when cache exceeds max size
+ * Uses LRU (Least Recently Used) eviction strategy
+ */
+function evictIfNeeded(): void {
+  if (embeddingCache.size <= MAX_CACHE_SIZE) return;
+
+  // Find and remove least recently used entries
+  const entriesToRemove = embeddingCache.size - MAX_CACHE_SIZE + Math.floor(MAX_CACHE_SIZE * 0.1);
+  const entries = Array.from(embeddingCache.entries())
+    .sort((a, b) => a[1].lastAccess - b[1].lastAccess)
+    .slice(0, entriesToRemove);
+
+  for (const [key] of entries) {
+    embeddingCache.delete(key);
+  }
+
+  logger.debug(
+    { removed: entriesToRemove, remaining: embeddingCache.size },
+    "Evicted old cache entries",
+  );
+}
+
+// Cleanup on process exit
+process.on("exit", () => {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveCacheNow();
+});
+
+process.on("SIGINT", () => {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveCacheNow();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveCacheNow();
+  process.exit(0);
+});
 
 /**
  * Load the embedding cache from disk on first use. This function reads
@@ -34,37 +124,29 @@ async function loadCache(): Promise<void> {
   if (cacheLoaded) return;
   try {
     if (existsSync(EMBEDDING_CACHE_FILE)) {
-      const data = JSON.parse(readFileSync(EMBEDDING_CACHE_FILE, "utf8"));
+      // SECURITY: Use safeJsonParse to prevent prototype pollution
+      const data = safeJsonParse<Record<string, number[]>>(
+        readFileSync(EMBEDDING_CACHE_FILE, "utf8"),
+      );
+      const now = Date.now();
       for (const key of Object.keys(data)) {
-        embeddingCache.set(key, data[key] as number[]);
+        embeddingCache.set(key, {
+          embedding: data[key] as number[],
+          lastAccess: now,
+        });
       }
+      logger.debug({ entries: Object.keys(data).length }, "Embedding cache loaded from disk");
     }
-  } catch {
-    // Ignore errors; cache will start empty
+  } catch (error) {
+    // Log but don't fail - cache will start empty
+    logger.debug({ error }, "Failed to load embedding cache");
   } finally {
     cacheLoaded = true;
   }
 }
 
-/**
- * Persist the current state of the embedding cache to disk. The cache is
- * serialised to JSON and written to EMBEDDING_CACHE_FILE. Errors are
- * swallowed silently to avoid interfering with embedding generation.
- */
-function saveCache(): void {
-  try {
-    if (!existsSync(CACHE_DIR)) {
-      mkdirSync(CACHE_DIR, { recursive: true });
-    }
-    const obj: Record<string, number[]> = {};
-    for (const [key, value] of embeddingCache.entries()) {
-      obj[key] = value;
-    }
-    writeFileSync(EMBEDDING_CACHE_FILE, JSON.stringify(obj));
-  } catch {
-    // Ignore write errors
-  }
-}
+// NOTE: saveCache() has been replaced by scheduleCacheSave() and saveCacheNow()
+// for debounced persistence. See the PERFORMANCE section above.
 
 export interface EmbedderConfig {
   provider: "transformers";
@@ -101,16 +183,21 @@ export async function embed(text: string): Promise<number[]> {
   // Check in-memory cache first
   const cached = embeddingCache.get(text);
   if (cached) {
+    // Update last access time for LRU tracking
+    cached.lastAccess = Date.now();
     // Record audit entry that cache hit occurred
     logAudit("embed", { textLength: text.length, fromCache: true });
-    return cached;
+    return cached.embedding;
   }
   const model = await getExtractor();
   const result = await model(text, { pooling: "mean", normalize: true });
   const embedding = Array.from(result.data as Float32Array);
-  // Store in cache and persist
-  embeddingCache.set(text, embedding);
-  saveCache();
+  // PERFORMANCE: Store in cache with LRU tracking
+  embeddingCache.set(text, { embedding, lastAccess: Date.now() });
+  // PERFORMANCE: Evict old entries if needed
+  evictIfNeeded();
+  // PERFORMANCE: Debounced persistence instead of synchronous write
+  scheduleCacheSave();
   // Record audit entry for new embedding
   logAudit("embed", { textLength: text.length, fromCache: false });
   return embedding;
@@ -126,23 +213,31 @@ export async function embedMany(texts: string[]): Promise<number[][]> {
   const results: number[][] = [];
   let hits = 0;
   let misses = 0;
+  const now = Date.now();
+
   for (const text of texts) {
     const cached = embeddingCache.get(text);
     if (cached) {
       hits++;
-      results.push(cached);
+      // Update last access time for LRU tracking
+      cached.lastAccess = now;
+      results.push(cached.embedding);
       continue;
     }
     misses++;
     const result = await model(text, { pooling: "mean", normalize: true });
     const embedding = Array.from(result.data as Float32Array);
-    embeddingCache.set(text, embedding);
+    // PERFORMANCE: Store with LRU tracking
+    embeddingCache.set(text, { embedding, lastAccess: now });
     results.push(embedding);
   }
-  // Persist updated cache if there were any misses
+
+  // PERFORMANCE: Evict old entries if needed and schedule debounced save
   if (misses > 0) {
-    saveCache();
+    evictIfNeeded();
+    scheduleCacheSave();
   }
+
   // Log audit information summarising hit/miss counts
   logAudit("embedMany", { count: texts.length, cacheHits: hits, cacheMisses: misses });
   return results;

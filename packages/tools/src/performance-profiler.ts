@@ -10,18 +10,18 @@
  * each time it is invoked.
  */
 
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
 import { performance } from "node:perf_hooks";
 import { logAudit } from "@flynn/core";
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
 
 const inputSchema = z.object({
-  modulePath: z.string().describe(
-    "Relative or absolute path to the module to import. For example './packages/core/src/logger.js'."
-  ),
-  functionName: z.string().describe(
-    "The name of the exported function to execute and time."
-  ),
+  modulePath: z
+    .string()
+    .describe(
+      "Relative or absolute path to the module to import. For example './packages/core/src/logger.js'.",
+    ),
+  functionName: z.string().describe("The name of the exported function to execute and time."),
   args: z
     .array(z.any())
     .default([])
@@ -41,7 +41,7 @@ export const performanceProfilerTool = createTool({
   inputSchema,
   outputSchema,
   execute: async (inputData) => {
-    const data = (inputData as unknown) as {
+    const data = inputData as unknown as {
       context?: { modulePath: string; functionName: string; args?: unknown[] };
       modulePath?: string;
       functionName?: string;
@@ -53,7 +53,7 @@ export const performanceProfilerTool = createTool({
     if (!modulePath || !functionName) {
       return {
         durationMs: 0,
-        error: `Both modulePath and functionName are required`,
+        error: "Both modulePath and functionName are required",
       };
     }
     try {
