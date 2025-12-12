@@ -1,20 +1,40 @@
 /**
  * @flynn/tools - Mastra tools for Flynn agents
+ *
+ * This module exports all Flynn tools organized by category:
+ * - Core Tools: Basic file, git, shell, and system operations
+ * - Expert System: Agent routing, orchestration, and workflows
+ * - Skills System: Progressive disclosure for token optimization
+ * - Hooks System: Claude Code automation
+ * - Codex Integration: OpenAI Codex delegation
+ * - Caching & Performance: Caching and profiling utilities
+ * - Analytics & Monitoring: Usage tracking and health checks
+ * - Handoff Protocol: Multi-agent context handoff
+ * - Anthropic Wrappers: Policy-enforced Anthropic tools
  */
+
+// ============================================================================
+// Core Tools
+// ============================================================================
 
 export { analyzeProjectTool } from "./project-analysis.js";
 export { systemInfoTool } from "./system-info.js";
-export { taskRouterTool } from "./task-router.js";
 export { gitOpsTool } from "./git-ops.js";
 export { fileOpsTool } from "./file-ops.js";
 export { shellTool } from "./shell.js";
 export { recordToolMetric, getMetrics, resetMetrics } from "./metrics.js";
 
-// NEW exports - Expert System Tools
+// ============================================================================
+// Expert System Tools
+// ============================================================================
+
+export { taskRouterTool } from "./task-router.js";
 export { getAgentContextTool } from "./get-agent-context.js";
 export { orchestrateTool } from "./orchestrate.js";
 export { listWorkflowsTool, WORKFLOW_DEFINITIONS } from "./list-workflows.js";
 export { healErrorTool } from "./heal-error.js";
+
+// Agent contexts and types
 export {
   AGENT_CONTEXTS,
   getAgentContext,
@@ -22,7 +42,7 @@ export {
   type AgentContext,
 } from "./agent-contexts.js";
 
-// Refactoring Loop - Documentation Enforcement
+// Refactoring loop
 export {
   validateDocumentation,
   createContext7Source,
@@ -35,11 +55,10 @@ export {
   type RefactoringLoopState,
 } from "./refactoring-loop.js";
 
-// Anthropic tool wrappers with Flynn policy enforcement
-export { flynnBashTool, createFlynnBashTool } from "./anthropic-bash-wrapper.js";
-export { flynnTextEditorTools, createFlynnTextEditorTools } from "./anthropic-editor-wrapper.js";
-
+// ============================================================================
 // Skills System - Progressive Disclosure for Token Optimization
+// ============================================================================
+
 export {
   getSkillTool,
   listSkillsTool,
@@ -56,7 +75,10 @@ export {
   type LoadedSkill,
 } from "./skills/index.js";
 
+// ============================================================================
 // Hooks System - Claude Code Automation
+// ============================================================================
+
 export {
   generateHooksTool,
   HOOK_TEMPLATES,
@@ -68,23 +90,11 @@ export {
   type HooksSettings,
 } from "./hooks/index.js";
 
-// Health Check Tool
-export { healthCheckTool } from "./health-check.js";
-
-// Analytics Tool - Usage Tracking
-export { analyticsTool } from "./analytics.js";
-
-// MCP Registry - Dynamic external MCP tool discovery
-export {
-  listMcpToolsTool,
-  mcpRegistry,
-  initializeMcpRegistry,
-  type McpTool,
-  type McpServer,
-  type McpToolCategory,
-} from "./mcp-registry.js";
-
+// ============================================================================
 // Codex Integration
+// ============================================================================
+
+// Main Codex tool and types
 export {
   codexDelegateTool,
   type OnChunkCallback,
@@ -93,23 +103,10 @@ export {
   type StreamingConfig,
   type ParsedCodexEvent,
 } from "./codex-delegate.js";
+
 export { codexMdGeneratorTool } from "./codex-md-generator.js";
 
-// P2 Features: Caching and Task Chunking
-export {
-  SimpleCache,
-  agentContextCache,
-  skillCache,
-  projectAnalysisCache,
-  workflowCache,
-  mcpToolCache,
-  clearAllCaches,
-  getAllCacheStats,
-  cleanupAllCaches,
-  generateCacheKey,
-  type CacheStats,
-} from "./cache.js";
-
+// Task chunking for complex task decomposition
 export {
   analyzeTaskComplexity,
   chunkTask,
@@ -125,10 +122,47 @@ export {
   type ChunkerConfig,
 } from "./task-chunker.js";
 
-// Performance profiling tool - allows measurement of function execution time
+// ============================================================================
+// Caching & Performance
+// ============================================================================
+
+export {
+  SimpleCache,
+  agentContextCache,
+  skillCache,
+  projectAnalysisCache,
+  workflowCache,
+  mcpToolCache,
+  clearAllCaches,
+  getAllCacheStats,
+  cleanupAllCaches,
+  generateCacheKey,
+  type CacheStats,
+} from "./cache.js";
+
 export { performanceProfilerTool } from "./performance-profiler.js";
 
-// Refactoring Loop - Automated Agent/MCP/Workflow optimization (moved above after AGENT_CONTEXTS)
+// ============================================================================
+// Analytics & Monitoring
+// ============================================================================
+
+export { analyticsTool } from "./analytics.js";
+export { healthCheckTool } from "./health-check.js";
+
+// MCP Registry - Dynamic external MCP tool discovery
+export {
+  listMcpToolsTool,
+  mcpRegistry,
+  initializeMcpRegistry,
+  type McpTool,
+  type McpServer,
+  type McpToolCategory,
+} from "./mcp-registry.js";
+
+// ============================================================================
+// Handoff Protocol
+// ============================================================================
+
 export {
   HandoffFileSchema,
   createHandoffFile,
@@ -146,3 +180,28 @@ export {
   type HandoffMetadata,
   type HandoffMemory,
 } from "./handoff-protocol.js";
+
+// ============================================================================
+// Anthropic Tool Wrappers with Flynn Policy Enforcement
+// ============================================================================
+
+export { flynnBashTool, createFlynnBashTool } from "./anthropic-bash-wrapper.js";
+export { flynnTextEditorTools, createFlynnTextEditorTools } from "./anthropic-editor-wrapper.js";
+
+// ============================================================================
+// Shared Constants
+// ============================================================================
+
+export {
+  TIMEOUTS,
+  CACHE_DEFAULTS,
+  MODEL_PRICING,
+  ANALYTICS_DEFAULTS,
+  ORCHESTRATION,
+  FILE_LIMITS,
+  HEALTH_THRESHOLDS,
+  AGENT_DEFAULTS,
+  SKILL_DEFAULTS,
+  LOGGING,
+  VERSION,
+} from "./constants.js";
