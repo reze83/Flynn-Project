@@ -28,7 +28,10 @@ export function extractActionVerbs(task: string): string[] {
 
   for (const word of words) {
     const cleanWord = word.replace(/[^a-z]/g, "");
-    if (ACTION_VERBS.includes(cleanWord as (typeof ACTION_VERBS)[number]) && !found.includes(cleanWord)) {
+    if (
+      ACTION_VERBS.includes(cleanWord as (typeof ACTION_VERBS)[number]) &&
+      !found.includes(cleanWord)
+    ) {
       found.push(cleanWord);
     }
   }
@@ -105,10 +108,7 @@ export function estimateMinutes(factors: Omit<ComplexityFactors, "estimatedMinut
     minutes *= TIME_FACTORS.multipleStepsMultiplier;
   }
 
-  return Math.max(
-    TIME_FACTORS.minMinutes,
-    Math.min(TIME_FACTORS.maxMinutes, Math.round(minutes)),
-  );
+  return Math.max(TIME_FACTORS.minMinutes, Math.min(TIME_FACTORS.maxMinutes, Math.round(minutes)));
 }
 
 /**
@@ -118,13 +118,22 @@ export function calculateComplexityScore(factors: ComplexityFactors): number {
   let score = 0;
 
   // Action verbs
-  score += Math.min(COMPLEXITY_WEIGHTS.maxVerbPoints, factors.verbCount * COMPLEXITY_WEIGHTS.verbPoints);
+  score += Math.min(
+    COMPLEXITY_WEIGHTS.maxVerbPoints,
+    factors.verbCount * COMPLEXITY_WEIGHTS.verbPoints,
+  );
 
   // Files
-  score += Math.min(COMPLEXITY_WEIGHTS.maxFilePoints, factors.fileCount * COMPLEXITY_WEIGHTS.filePoints);
+  score += Math.min(
+    COMPLEXITY_WEIGHTS.maxFilePoints,
+    factors.fileCount * COMPLEXITY_WEIGHTS.filePoints,
+  );
 
   // Concepts
-  score += Math.min(COMPLEXITY_WEIGHTS.maxConceptPoints, factors.conceptCount * COMPLEXITY_WEIGHTS.conceptPoints);
+  score += Math.min(
+    COMPLEXITY_WEIGHTS.maxConceptPoints,
+    factors.conceptCount * COMPLEXITY_WEIGHTS.conceptPoints,
+  );
 
   // Multiple steps
   if (factors.hasMultipleSteps) {

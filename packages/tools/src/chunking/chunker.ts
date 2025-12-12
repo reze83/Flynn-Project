@@ -7,7 +7,12 @@
 import { createLogger } from "@flynn/core";
 import { analyzeTaskComplexity, extractFileReferences } from "./analyzer.js";
 import { calculateExecutionOrder } from "./scheduler.js";
-import { buildDependencyGraph, generateChunkId, splitByActionVerbs, splitByFiles } from "./splitter.js";
+import {
+  buildDependencyGraph,
+  generateChunkId,
+  splitByActionVerbs,
+  splitByFiles,
+} from "./splitter.js";
 import type { ChunkerConfig, ChunkingResult, TaskChunk } from "./types.js";
 import { DEFAULT_CHUNKER_CONFIG } from "./types.js";
 

@@ -312,6 +312,7 @@ async function executeWithStrategy(
 /**
  * Handle delegate operation with chunking support
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Orchestrates delegation with validation, chunking, handoff, and execution
 export async function handleDelegateOperation(
   operation: string,
   task: string | undefined,
@@ -343,7 +344,8 @@ export async function handleDelegateOperation(
   let handoff = getOrCreateHandoff(handoffPath, workingDir);
   handoff = updateSessionStatus(handoff, "active");
 
-  const taskDescription = useChunking && chunkingResult ? `[CHUNKED] ${validatedTask}` : validatedTask;
+  const taskDescription =
+    useChunking && chunkingResult ? `[CHUNKED] ${validatedTask}` : validatedTask;
   const requirements =
     useChunking && chunkingResult
       ? `Chunked into ${chunkingResult.chunks.length} subtasks. ${context?.requirements || ""}`

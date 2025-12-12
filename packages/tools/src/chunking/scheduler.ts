@@ -9,6 +9,7 @@ import type { TaskChunk } from "./types.js";
 /**
  * Calculate execution order (parallel groups)
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Topological sort algorithm with cycle detection - complexity inherent to scheduling
 export function calculateExecutionOrder(
   chunks: TaskChunk[],
   dependencies: Map<number, number[]>,

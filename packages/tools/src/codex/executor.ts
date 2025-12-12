@@ -155,6 +155,7 @@ export async function executeCodex(
       }
     });
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Event callback handling completion with status updates and logging
     proc.on("close", (code) => {
       clearTimeout(timeoutId);
       const success = code === 0;
@@ -243,6 +244,7 @@ export function buildChunkTaskDescription(
 /**
  * Execute a task in chunks with dependency ordering and streaming support
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Orchestrates chunked execution with dependency tracking and streaming
 export async function executeChunkedTask(
   codexPath: string,
   chunkingResult: ChunkingResult,

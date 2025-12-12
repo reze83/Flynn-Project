@@ -4,12 +4,13 @@
  * Splits complex tasks into smaller, manageable chunks.
  */
 
-import { ACTION_VERBS, TASK_SEPARATORS } from "./constants.js";
 import { extractFileReferences } from "./analyzer.js";
+import { ACTION_VERBS, TASK_SEPARATORS } from "./constants.js";
 
 /**
  * Split task by action verbs
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: NLP parsing algorithm with multiple separator strategies
 export function splitByActionVerbs(task: string): string[] {
   const verbs = extractActionVerbs(task);
 
@@ -65,7 +66,10 @@ function extractActionVerbs(task: string): string[] {
 
   for (const word of words) {
     const cleanWord = word.replace(/[^a-z]/g, "");
-    if (ACTION_VERBS.includes(cleanWord as (typeof ACTION_VERBS)[number]) && !found.includes(cleanWord)) {
+    if (
+      ACTION_VERBS.includes(cleanWord as (typeof ACTION_VERBS)[number]) &&
+      !found.includes(cleanWord)
+    ) {
       found.push(cleanWord);
     }
   }
@@ -110,6 +114,7 @@ export function generateChunkId(index: number): string {
  * Build dependency graph between chunks
  * PERFORMANCE: Optimized using file-to-chunk index
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Graph construction with two-pass indexing - complexity inherent to dependency analysis
 export function buildDependencyGraph(chunks: string[]): Map<number, number[]> {
   const dependencies = new Map<number, number[]>();
 
